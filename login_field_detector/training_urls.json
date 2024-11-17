@@ -1,0 +1,52 @@
+[
+  {
+    "category": "Social Media",
+    "urls": [
+      "https://www.facebook.com/login",
+      "https://twitter.com/login",
+      "https://www.instagram.com/accounts/login/",
+      "https://www.linkedin.com/login",
+      "https://www.reddit.com/login/"
+    ]
+  },
+  {
+    "category": "Email Services",
+    "urls": [
+      "https://accounts.google.com/signin",
+      "https://login.yahoo.com/",
+      "https://outlook.live.com/owa/"
+    ]
+  },
+  {
+    "category": "E-Commerce",
+    "urls": [
+      "https://www.amazon.com/ap/signin",
+      "https://signin.ebay.com/",
+      "https://accounts.shopify.com/store-login"
+    ]
+  },
+  {
+    "category": "Payment Platforms",
+    "urls": [
+      "https://www.paypal.com/signin",
+      "https://dashboard.stripe.com/login",
+      "https://squareup.com/login"
+    ]
+  },
+  {
+    "category": "Productivity Tools",
+    "urls": [
+      "https://trello.com/login",
+      "https://slack.com/signin",
+      "https://zoom.us/signin"
+    ]
+  },
+  {
+    "category": "Miscellaneous",
+    "urls": [
+      "https://github.com/login",
+      "https://accounts.spotify.com/en/login",
+      "https://accounts.google.com/signin/v2/identifier?service=youtube"
+    ]
+  }
+]

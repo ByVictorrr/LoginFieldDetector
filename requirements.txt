@@ -1,0 +1,7 @@
+transformers
+datasets
+bs4
+torch
+accelerate
+lxml
+pytest
