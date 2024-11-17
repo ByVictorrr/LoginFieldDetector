@@ -37,13 +37,6 @@ def get_training_urls():
 TRAINING_URLS = get_training_urls()
 
 
-def clean_token(token):
-    """Normalize and clean tokens to reduce noise."""
-    token = token.lower()
-    token = re.sub(r"[^a-z0-9@._-]", "", token)  # Remove unwanted characters
-    return token
-
-
 def split_dataset(urls, test_size=0.2, random_state=42):
     """Split URLs into training and validation sets."""
     return train_test_split(urls, test_size=test_size, random_state=random_state)
@@ -84,39 +77,46 @@ class LoginFieldDetector:
         return inputs
 
     def process_urls(self, url_list):
-        """Process multiple URLs and generate tokens/labels."""
-        tokens, labels = [], []
+        all_tokens, all_labels = [], []
         for url in url_list:
             print(f"Processing {url}")
             html = fetch_html(url)  # Fetch HTML using requests
             if html:
-                t, l = parse_html(html, self.label2id)
-                tokens.extend([clean_token(token) for token in t])
-                labels.extend(l)
-        return tokens, labels
+                tokens, labels = parse_html(html, self.label2id)
+                if tokens and labels:
+                    all_tokens.append(tokens)
+                    all_labels.append(labels)
+        return all_tokens, all_labels
 
     def create_dataset(self, url_list):
-        """Create a dataset from a list of URLs."""
-        tokens, labels = self.process_urls(url_list)
-        inputs = self.tokenize_and_align_labels(tokens, labels)
+        tokens_list, labels_list = self.process_urls(url_list)
 
-        # Consolidate features into a dataset
         data = defaultdict(list)
-        for key, value in inputs.items():
-            data[key].append(value.squeeze(0))  # Remove batch dimension
+        for tokens, labels in zip(tokens_list, labels_list):
+            inputs = self.tokenize_and_align_labels(tokens, labels)
+            for key, value in inputs.items():
+                data[key].append(value.squeeze(0))  # One example per URL
 
         return Dataset.from_dict(data)
 
     def train(self, urls=TRAINING_URLS, output_dir="./results", epochs=5, batch_size=4, learning_rate=5e-5):
         """Train the model."""
         # Create a single dataset
-        train_dataset = self.create_dataset(urls)
+        dataset = self.create_dataset(urls)
+
+        if len(dataset) < 2:
+            raise ValueError("Dataset is too small. Provide more URLs or check the HTML parser.")
+
+        # Split dataset
+        train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
+        print(f"Training samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}")
 
         training_args = TrainingArguments(
             output_dir=output_dir,
             evaluation_strategy="epoch",
             save_strategy="epoch",
             logging_dir="./logs",
+            logging_steps=100,
             learning_rate=learning_rate,
             per_device_train_batch_size=batch_size,
             num_train_epochs=epochs,
@@ -128,11 +128,13 @@ class LoginFieldDetector:
             model=self.model,
             args=training_args,
             train_dataset=train_dataset,
-            eval_dataset=train_dataset,
+            eval_dataset=val_dataset,
             data_collator=data_collator,
         )
+
+        print("Starting training...")
         trainer.train()
-        self.evaluate_model(train_dataset)
+        self.evaluate_model(val_dataset)
 
     def evaluate_model(self, dataset):
         """Evaluate the model on a given dataset."""
@@ -172,11 +174,15 @@ class LoginFieldDetector:
             print("No tokens found in the HTML.")
             return []
 
+        print(f"Tokens before tokenization: {tokens}")
         inputs = self.tokenize_and_align_labels(tokens, [0] * len(tokens))
-        outputs = self.model(**inputs)
 
+        outputs = self.model(**inputs)
         probabilities = F.softmax(outputs.logits, dim=-1).detach().cpu().numpy()
         predictions = torch.argmax(outputs.logits, dim=-1).squeeze().tolist()
+
+        print(f"Predictions: {predictions}")
+        print(f"Probabilities: {probabilities}")
 
         results = []
         for token, pred, prob in zip(tokens, predictions, probabilities):
@@ -186,6 +192,7 @@ class LoginFieldDetector:
                 if label != "O":  # Ignore irrelevant tokens
                     results.append({"token": token, "label": label, "confidence": confidence})
 
+        print(f"Results: {results}")
         return results
 
 

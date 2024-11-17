@@ -6,7 +6,10 @@
       "https://twitter.com/login",
       "https://www.instagram.com/accounts/login/",
       "https://www.linkedin.com/login",
-      "https://www.reddit.com/login/"
+      "https://www.reddit.com/login/",
+      "https://www.pinterest.com/login/",
+      "https://www.snapchat.com/login",
+      "https://tiktok.com/login"
     ]
   },
   {
@@ -14,14 +17,19 @@
     "urls": [
       "https://accounts.google.com/signin",
       "https://login.yahoo.com/",
-      "https://outlook.live.com/owa/"
+      "https://outlook.live.com/owa/",
+      "https://mail.aol.com/webmail-std/en-us/suite",
+      "https://protonmail.com/login"
     ]
   },
   {
     "category": "E-Commerce",
     "urls": [
       "https://signin.ebay.com/",
-      "https://accounts.shopify.com/store-login"
+      "https://accounts.shopify.com/store-login",
+      "https://www.amazon.com/ap/signin",
+      "https://www.walmart.com/account/login",
+      "https://www.etsy.com/signin"
     ]
   },
   {
@@ -29,7 +37,9 @@
     "urls": [
       "https://www.paypal.com/signin",
       "https://dashboard.stripe.com/login",
-      "https://squareup.com/login"
+      "https://squareup.com/login",
+      "https://www.venmo.com/account/sign-in",
+      "https://www.payoneer.com/accounts/signin/"
     ]
   },
   {
@@ -37,7 +47,29 @@
     "urls": [
       "https://trello.com/login",
       "https://slack.com/signin",
-      "https://zoom.us/signin"
+      "https://zoom.us/signin",
+      "https://www.asana.com/login",
+      "https://www.dropbox.com/login"
+    ]
+  },
+  {
+    "category": "Streaming Services",
+    "urls": [
+      "https://www.netflix.com/login",
+      "https://www.hulu.com/login",
+      "https://www.disneyplus.com/login",
+      "https://www.hbo.com/login",
+      "https://www.amazon.com/ap/signin?openid.pape.max_auth_age=0&openid.return_to=https://www.amazon.com/video&openid.identity=http://specs.openid.net/auth/2.0/identifier_select&openid.assoc_handle=amzn_video_us&openid.mode=checkid_setup&openid.ns=http://specs.openid.net/auth/2.0"
+    ]
+  },
+  {
+    "category": "Gaming Platforms",
+    "urls": [
+      "https://store.steampowered.com/login/",
+      "https://www.epicgames.com/account/v2/login",
+      "https://www.playstation.com/en-us/sign-in/",
+      "https://www.xbox.com/en-US/live",
+      "https://my.nintendo.com/"
     ]
   },
   {
@@ -45,7 +77,9 @@
     "urls": [
       "https://github.com/login",
       "https://accounts.spotify.com/en/login",
-      "https://accounts.google.com/signin/v2/identifier?service=youtube"
+      "https://accounts.google.com/signin/v2/identifier?service=youtube",
+      "https://www.udemy.com/join/login-popup/",
+      "https://www.khanacademy.org/login"
     ]
   }
 ]
