@@ -20,7 +20,6 @@
   {
     "category": "E-Commerce",
     "urls": [
-      "https://www.amazon.com/ap/signin",
       "https://signin.ebay.com/",
       "https://accounts.shopify.com/store-login"
     ]

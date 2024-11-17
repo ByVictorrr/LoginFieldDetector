@@ -1,12 +1,13 @@
 # Byte-compiled / optimized / DLL files
 __pycache__/
-results/
 *.py[cod]
 *$py.class
 # Certification
 *.pem
 # C extensions
 *.so
+# model stuff
+results/
 
 # Test web server
 certs/

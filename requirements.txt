@@ -4,4 +4,5 @@ bs4
 torch
 accelerate
 lxml
+scikit-learn
 pytest
