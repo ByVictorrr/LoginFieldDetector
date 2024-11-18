@@ -80,10 +80,14 @@ def parse_html(html, label2id):
         if label == "O":
             print(f"Unmatched tag: {tag}")
 
-        # Append token and label
-        # tokens.append(xpath)
-        tokens.append(str(tag))
+        # Add token and label
+        token = {
+            "tag": tag.name,
+            "text": tag.get_text(strip=True).lower(),
+            **{k: " ".join(v) if isinstance(v, list) else str(v) for k, v in tag.attrs.items()},
+            # "xpath": get_xpath(tag),
+        }
+        tokens.append(" ".join(filter(None, token.values())))
         labels.append(label2id[label])
 
     return tokens, labels
-

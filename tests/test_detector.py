@@ -2,7 +2,7 @@ import pytest
 from login_field_detector import LoginFieldDetector, fetch_html
 
 
-@pytest.fixture
+@pytest.fixture(scope="session")
 def detector():
     """Fixture to initialize LoginFieldDetector."""
     detector = LoginFieldDetector()
