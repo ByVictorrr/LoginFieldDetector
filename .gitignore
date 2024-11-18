@@ -9,6 +9,7 @@ __pycache__/
 # model stuff
 results/
 logs/
+fine_tuned_model/
 
 # Test web server
 certs/

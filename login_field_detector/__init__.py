@@ -1,2 +1,2 @@
 from .field_detector import LoginFieldDetector
-from .html_serializer import fetch_html
+from .html_feature_extractor import fetch_html, HTMLFeatureExtractor
