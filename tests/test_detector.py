@@ -1,6 +1,4 @@
 import pytest
-import requests
-
 from login_field_detector import LoginFieldDetector, fetch_html
 
 
@@ -12,15 +10,15 @@ def detector():
     return detector
 
 
-def test_media_urls(detector):
+@pytest.mark.parametrize("url", [
+    "https://www.facebook.com/login",
+    "https://twitter.com/login",
+    "https://www.instagram.com/accounts/login/",
+])
+def test_media_urls(detector, url):
     """Test LoginFieldDetector with a set of media URLs."""
     # Example media URLs (mock URLs or replace with real ones for testing)
-    for url in [
-        "https://www.facebook.com/login",
-        "https://twitter.com/login",
-        "https://www.instagram.com/accounts/login/"
-    ]:
-        html_text = fetch_html(url)
-        predictions = detector.predict(html_text)
-        if len(predictions) < 1:
-            pytest.fail(f"LoginFieldDetector failed with media URLs")
+    html_text = fetch_html(url)
+    predictions = detector.predict(html_text)
+    if len(predictions) < 1:
+        pytest.fail(f"LoginFieldDetector failed with media URLs")

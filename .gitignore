@@ -8,11 +8,11 @@ __pycache__/
 *.so
 # model stuff
 results/
+logs/
 
 # Test web server
 certs/
 node_modules/
-logs/
 package-lock.json
 
 # Distribution / packaging

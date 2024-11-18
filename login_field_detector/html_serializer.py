@@ -49,6 +49,8 @@ def parse_html(html, label2id):
     for tag in soup.find_all(["input", "button", "a", "iframe"]):
         # xpath = get_xpath(tag)
         label = "O"  # Default label
+        if tag.name == "input" and tag.attrs.get("type") == "hidden":
+            continue  # Skip hidden inputs
 
         if tag.name == "input":
             input_type = tag.get("type", "text").lower()  # Default to "text"
