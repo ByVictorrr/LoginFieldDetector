@@ -16,6 +16,7 @@ from sklearn.metrics import classification_report
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS, fetch_html
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
+os.environ["USE_GPU"] = "true"
 
 
 @functools.cache
@@ -33,10 +34,14 @@ GIT_DIR = os.path.dirname(os.path.dirname(__file__))
 
 
 class LoginFieldDetector:
-    def __init__(self, model_dir=f"{GIT_DIR}/fine_tuned_model", labels=None):
+    def __init__(self, model_dir=f"{GIT_DIR}/fine_tuned_model", labels=None, device=None):
         self.labels = labels or LABELS
         self.label2id = {label: i for i, label in enumerate(self.labels)}
         self.id2label = {i: label for label, i in self.label2id.items()}
+
+        # Set the device
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {self.device}")
 
         if os.path.exists(model_dir):
             # Load fine-tuned model and tokenizer
@@ -56,6 +61,9 @@ class LoginFieldDetector:
                 id2label=self.id2label,
                 label2id=self.label2id,
             )
+
+        # Move model to the correct device
+        self.model = self.model.to(self.device)
         self.model_dir = model_dir
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
 
@@ -78,6 +86,10 @@ class LoginFieldDetector:
                 aligned_labels.append(labels[word_id])  # Align label to token
 
         inputs["labels"] = torch.tensor([aligned_labels])
+
+        # Move tensors to the correct device
+        for key in inputs:
+            inputs[key] = inputs[key].to(self.device)
         return inputs
 
     def process_urls(self, url_list):
@@ -106,7 +118,8 @@ class LoginFieldDetector:
 
         return Dataset.from_dict(data)
 
-    def train(self, urls=TRAINING_URLS, output_dir=f"{GIT_DIR}/fine_tuned_model", epochs=5, batch_size=4, learning_rate=5e-5):
+    def train(self, urls=TRAINING_URLS, output_dir=f"{GIT_DIR}/fine_tuned_model", epochs=5, batch_size=4,
+              learning_rate=5e-5):
         """Train the model."""
         # Create a single dataset
         dataset = self.create_dataset(urls)
@@ -156,8 +169,9 @@ class LoginFieldDetector:
         predictions, true_labels = [], []
 
         for example in dataset:
-            inputs = {key: torch.tensor(value).unsqueeze(0) for key, value in example.items() if key != "labels"}
-            labels = torch.tensor(example["labels"]).unsqueeze(0)
+            inputs = {key: torch.tensor(value).unsqueeze(0).to(self.device) for key, value in example.items() if
+                      key != "labels"}
+            labels = torch.tensor(example["labels"]).unsqueeze(0).to(self.device)
 
             with torch.no_grad():
                 outputs = self.model(**inputs)

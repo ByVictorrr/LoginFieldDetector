@@ -1,8 +1,8 @@
 import re
+import logging
 import functools
 import json
 import os.path
-
 import requests
 from bs4 import BeautifulSoup
 
@@ -40,6 +40,13 @@ LABELS = ["O", "USERNAME", "PASSWORD", "2FA", "NEXT", "LOGIN", "OAUTH"]
 
 OAUTH_PROVIDERS = load_oauth_names()
 
+PATTERNS = {
+    "USERNAME": re.compile(r"(email|phone|user|username|account|login)", re.IGNORECASE),
+    "PASSWORD": re.compile(r"(pass|password|pwd|secret)", re.IGNORECASE),
+    "2FA": re.compile(r"(2fa|auth|code|otp|verification|token)", re.IGNORECASE),
+    "LOGIN": re.compile(r"(login|log in|sign in|continue)", re.IGNORECASE),
+}
+
 
 class HTMLFeatureExtractor:
     def __init__(self, label2id, oauth_providers=None):
@@ -52,75 +59,71 @@ class HTMLFeatureExtractor:
         self.oauth_providers = oauth_providers or OAUTH_PROVIDERS
 
     @staticmethod
-    def extract_input_features(tag):
+    def _extract_input_features(tag):
         """Extract features for input elements."""
         input_type = tag.get("type", "text").lower()
-        name = tag.get("name", "").lower()
-        placeholder = tag.get("placeholder", "").lower()
-        patterns = {
-            "USERNAME": re.compile(r"(email|phone|user)", re.IGNORECASE),
-            "2FA": re.compile(r"(2fa|auth|code|otp)", re.IGNORECASE),
-        }
+        attributes = " ".join(tag.get(attr, "").lower() for attr in ["id", "name", "class", "placeholder"])
+        if PATTERNS["USERNAME"].search(attributes):
+            return "USERNAME"
+        if input_type == "password" or PATTERNS["PASSWORD"].search(attributes):
+            return "PASSWORD"
+        if PATTERNS["2FA"].search(attributes):
+            return "2FA"
+        return "O"
 
-        def matches_any(strings, candidates):
-            return any(s in candidates for s in strings)
-
-        if input_type in ["email", "user", "username"] or patterns["USERNAME"].search(name + placeholder) or matches_any(["email", "user", "username"], tag.attrs.values()):
-            label = "USERNAME"
-        elif input_type == "password" or matches_any(["pass", "password"], tag.attrs.values()):
-            label = "PASSWORD"
-        elif input_type == "text" and patterns["2FA"].search(placeholder):
-            label = "2FA"
-        else:
-            label = "O"
-
-        return label
-
-    def extract_other_features(self, tag):
+    def _extract_other_features(self, tag):
         """Extract features for other elements like button, a, iframe."""
         text = tag.get_text(strip=True).lower()
         href = tag.get("href", "").lower()
-        attrs = " ".join(f"{k} {v}" for k, v in tag.attrs.items()).lower()
+        attributes = " ".join(f"{k} {v}" for k, v in tag.attrs.items()).lower()
 
-        def matches_any(strings, candidates):
-            return any(s in candidates for s in strings)
+        if PATTERNS["LOGIN"].search(text + attributes):
+            return "LOGIN"
+        if any(provider in text + href for provider in self.oauth_providers):
+            return "OAUTH"
+        if "next" in text or "continue" in text:
+            return "NEXT"
+        return "O"
 
-        if matches_any(["login", "log in", "sign in"], text) or matches_any(["login"], attrs):
-            label = "LOGIN"
-        elif matches_any(["next", "continue"], text):
-            label = "NEXT"
-        elif matches_any(self.oauth_providers, text + href):
-            label = "OAUTH"
-        else:
-            label = "O"
-        return label
+    @staticmethod
+    def _generate_token(tag):
+        """Create a token representation for the given tag."""
+        parent = tag.find_parent()
+        parent_tag = parent.name if parent else "root"
+        parent_attrs = " ".join(f"{k}={v}" for k, v in parent.attrs.items() if v) if parent else ""
+        token = {
+            "tag": tag.name,
+            "text": tag.get_text(strip=True).lower(),
+            "attrs": " ".join(f"{k}={v}" for k, v in tag.attrs.items() if v),
+            "parent_tag": parent_tag,
+            "parent_attrs": parent_attrs,
+        }
+        return " ".join(filter(None, token.values()))
 
     def get_features(self, html):
         """Extract tokens, labels, and xpaths from HTML."""
         soup = BeautifulSoup(html, "lxml")
-        tokens = []
-        labels = []
-        xpaths = []
+        tokens, labels, xpaths = [], [], []
 
         for tag in soup.find_all(["input", "button", "a", "iframe"]):
             if tag.name == "input" and tag.attrs.get("type") == "hidden":
                 continue  # Skip hidden inputs
 
             if tag.name == "input":
-                label = self.extract_input_features(tag)
+                label = self._extract_input_features(tag)
             else:
-                label = self.extract_other_features(tag)
+                label = self._extract_other_features(tag)
 
-            # Combine attributes to create the token
+            # Generate token and XPath
+            token = self._generate_token(tag)
+            xpath = get_xpath(tag)
 
-            # Add token and label
-            token = {
-                "tag": tag.name,
-                "text": tag.get_text(strip=True).lower(),
-                "attrs": " ".join(f"{k}={v}" for k, v in tag.attrs.items() if v),
-            }
-            tokens.append(" ".join(filter(None, token.values())))
+            # Append results
+            tokens.append(token)
             labels.append(self.label2id[label])
-            xpaths.append(get_xpath(tag))
+            xpaths.append(xpath)
+
+            # Debug logging
+            logging.debug(f"Processed Tag: {tag}, Token: {token}, Label: {label}, XPath: {xpath}")
 
         return tokens, labels, xpaths
