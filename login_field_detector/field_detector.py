@@ -1,6 +1,6 @@
+import os
 import functools
 import json
-import os.path
 from collections import defaultdict
 from transformers import (
     BertTokenizerFast,
@@ -9,12 +9,13 @@ from transformers import (
     Trainer,
     TrainingArguments,
 )
+import torch
 from datasets import Dataset
 from sklearn.metrics import classification_report
-import torch
-import torch.nn.functional as F
 
 from .html_serializer import parse_html, LABELS, fetch_html
+
+os.environ["TOKENIZERS_PARALLELISM"] = "true"
 
 
 @functools.cache
@@ -45,6 +46,7 @@ class LoginFieldDetector:
         )
 
     def tokenize_and_align_labels(self, tokens, labels):
+        """Tokenize and align input tokens with their labels."""
         inputs = self.tokenizer(
             tokens,
             truncation=True,
@@ -62,18 +64,14 @@ class LoginFieldDetector:
                 aligned_labels.append(labels[word_id])  # Align label to token
 
         inputs["labels"] = torch.tensor([aligned_labels])
-        print("Original Tokens:", tokens)
-        print("Original Labels:", labels)
-        print("Word IDs:", inputs.word_ids(batch_index=0))
-        print("Aligned Labels:", aligned_labels)
-        print("Tokenized Inputs:", self.tokenizer.convert_ids_to_tokens(inputs["input_ids"][0]))
         return inputs
 
     def process_urls(self, url_list):
+        """Fetch HTML, parse it, and generate token-label pairs."""
         all_tokens, all_labels = [], []
         for url in url_list:
             print(f"Processing {url}")
-            html = fetch_html(url)  # Fetch HTML using requests
+            html = fetch_html(url)
             if html:
                 tokens, labels = parse_html(html, self.label2id)
                 if tokens and labels:
@@ -82,25 +80,25 @@ class LoginFieldDetector:
         return all_tokens, all_labels
 
     def create_dataset(self, url_list):
+        """Create a HuggingFace dataset from tokenized input and labels."""
         tokens_list, labels_list = self.process_urls(url_list)
 
         data = defaultdict(list)
         for tokens, labels in zip(tokens_list, labels_list):
             inputs = self.tokenize_and_align_labels(tokens, labels)
             for key, value in inputs.items():
-                data[key].append(value.squeeze(0))  # One example per URL
+                data[key].append(value.squeeze(0))  # Add one example per URL
 
         return Dataset.from_dict(data)
 
     def train(self, urls=TRAINING_URLS, output_dir=f"{GIT_DIR}/results", epochs=5, batch_size=4, learning_rate=5e-5):
         """Train the model."""
-        # Create a single dataset
         dataset = self.create_dataset(urls)
 
         if len(dataset) < 2:
             raise ValueError("Dataset is too small. Provide more URLs or check the HTML parser.")
 
-        # Split dataset
+        # Split the dataset
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
         print(f"Training samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}")
 
@@ -108,13 +106,16 @@ class LoginFieldDetector:
             output_dir=output_dir,
             evaluation_strategy="epoch",
             save_strategy="epoch",
-            logging_dir=f"{GIT_DIR}/logs",
-            logging_steps=100,
             learning_rate=learning_rate,
             per_device_train_batch_size=batch_size,
             num_train_epochs=epochs,
             weight_decay=0.01,
+            max_grad_norm=1.0,  # Gradient clipping
+            logging_dir=f"{GIT_DIR}/logs",
+            logging_steps=10,
+            save_total_limit=2,  # Limit checkpoint saves
         )
+
         data_collator = DataCollatorForTokenClassification(tokenizer=self.tokenizer)
 
         trainer = Trainer(
@@ -134,12 +135,11 @@ class LoginFieldDetector:
         predictions, true_labels = [], []
 
         for example in dataset:
-            # Convert inputs to PyTorch tensors
             inputs = {key: torch.tensor(value).unsqueeze(0) for key, value in example.items() if key != "labels"}
-            labels = torch.tensor(example["labels"]).unsqueeze(0)  # Labels as tensor
+            labels = torch.tensor(example["labels"]).unsqueeze(0)
 
-            # Forward pass
-            outputs = self.model(**inputs)
+            with torch.no_grad():
+                outputs = self.model(**inputs)
             logits = outputs.logits
 
             # Predictions and true labels
@@ -153,40 +153,27 @@ class LoginFieldDetector:
             predictions.extend(filtered_preds)
             true_labels.extend(filtered_true)
 
-        # Check label alignment
-        unique_labels = sorted(set(true_labels + predictions))
-        target_labels = [self.id2label[label] for label in unique_labels]
-
-        # Generate classification report
+        target_labels = [self.id2label[label] for label in sorted(set(true_labels + predictions))]
         print(classification_report(true_labels, predictions, target_names=target_labels))
 
-    def predict(self, html):
-        tokens, _ = parse_html(html, self.label2id)
+    def predict(self, html_text):
+        """Generate predictions for raw HTML."""
+        tokens, _ = parse_html(html_text, self.label2id)
+        inputs = self.tokenizer(
+            tokens,
+            truncation=True,
+            padding=True,
+            is_split_into_words=True,
+            return_tensors="pt",
+        )
+        with torch.no_grad():
+            outputs = self.model(**inputs)
 
-        if not tokens:
-            print("No tokens found in the HTML.")
-            return []
+        logits = outputs.logits
+        predictions = torch.argmax(logits, dim=-1).squeeze().tolist()
 
-        print(f"Tokens before tokenization: {tokens}")
-        inputs = self.tokenize_and_align_labels(tokens, [0] * len(tokens))
-
-        outputs = self.model(**inputs)
-        probabilities = F.softmax(outputs.logits, dim=-1).detach().cpu().numpy()
-        predictions = torch.argmax(outputs.logits, dim=-1).squeeze().tolist()
-
-        print(f"Predictions: {predictions}")
-        print(f"Probabilities: {probabilities}")
-
-        results = []
-        for token, pred, prob in zip(tokens, predictions, probabilities):
-            if pred != -100:  # Ignore special tokens
-                label = self.id2label[pred]
-                confidence = prob[pred]
-                if label != "O":  # Ignore irrelevant tokens
-                    results.append({"token": token, "label": label, "confidence": confidence})
-
-        print(f"Results: {results}")
-        return results
+        predicted_labels = [self.id2label[p] for p in predictions if p != -100]
+        return list(zip(tokens, predicted_labels))
 
 
 if __name__ == "__main__":
