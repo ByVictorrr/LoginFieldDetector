@@ -1,21 +1,17 @@
-"""
-
-"""
 import re
 import logging
 import functools
 import json
-import os.path
+import os
 from sklearn.feature_extraction import DictVectorizer
 from bs4 import BeautifulSoup
-from transformers import BertTokenizerFast
 
 
 @functools.cache
 def load_oauth_names():
+    """Load OAuth provider names from a JSON file."""
     with open(os.path.join(os.path.dirname(__file__), "oauth_providers.json")) as flp:
-        data = json.load(flp)
-    return data
+        return json.load(flp)
 
 
 def get_xpath(element):
@@ -50,70 +46,85 @@ class HTMLFeatureExtractor:
         """
         self.label2id = label2id
         self.oauth_providers = oauth_providers or OAUTH_PROVIDERS
-        self.vectorizer = DictVectorizer(sparse=False)  # Initialize DictVectorizer
+        self.vectorizer = DictVectorizer(sparse=False)  # Initialize DictVectorizer for tag.attrs
+
+    @staticmethod
+    def _get_bounding_box(tag):
+        """
+        Placeholder for bounding box extraction.
+        This can be enhanced with a layout or DOM rendering mechanism.
+        """
+        return [0, 0, 100, 100]
+
+    @staticmethod
+    def _get_parent_tag(tag):
+        """Get the parent tag name. Defaults to 'root' if no parent exists."""
+        parent = tag.find_parent()
+        return parent.name if parent else "root"
 
     def _extract_features(self, tag):
-        """Extract features for any HTML tag."""
+        """
+        Extract features for any HTML tag.
+        Includes text, tag, attributes, bounding box, and parent information.
+        """
         text = tag.get_text(strip=True).lower()
-        attributes = " ".join(
-            "".join(attr) if isinstance(attr, list) else attr for attr in tag.attrs.values()
-        ).lower()
-        features = {
-            "tag": tag.name,
-            "text": text,
-            "parent_tag": tag.find_parent().name if tag.find_parent() else "root",
-            **tag.attrs,
-        }
+        attributes = tag.attrs  # Use tag.attrs directly as meta-data
 
         label = "O"
         input_type = tag.get("type", "text").lower()
+
         if tag.name == "input":
-            if PATTERNS["USERNAME"].search(attributes):
+            if PATTERNS["USERNAME"].search(str(attributes)):
                 label = "USERNAME"
-            if input_type == "password" or PATTERNS["PASSWORD"].search(attributes):
+            elif input_type == "password" or PATTERNS["PASSWORD"].search(str(attributes)):
                 label = "PASSWORD"
-            if PATTERNS["2FA"].search(attributes):
+            elif PATTERNS["2FA"].search(str(attributes)):
                 label = "2FA"
         else:
-            if PATTERNS["LOGIN"].search(text + attributes):
+            if PATTERNS["LOGIN"].search(text + str(attributes)):
                 label = "LOGIN"
-            if any(provider in text for provider in self.oauth_providers):
+            elif any(provider in text for provider in self.oauth_providers):
                 label = "OAUTH"
-            if "next" in text or "continue" in text:
+            elif "next" in text or "continue" in text:
                 label = "NEXT"
 
+        features = {
+            "tag": tag.name,
+            "text": text,
+            "parent_tag": self._get_parent_tag(tag),
+            "attributes": attributes,
+        }
         return label, features
 
-    def fit(self, token_features_list):
-        """Fit DictVectorizer on the entire dataset."""
-        self.vectorizer.fit(token_features_list)
+    def fit_meta_features(self, token_features_list):
+        """Fit the DictVectorizer to meta features (tag.attrs)."""
+        meta_features_list = [token["attributes"] for token in token_features_list]
+        self.vectorizer.fit(meta_features_list)
 
-    def transform(self, token_features_list):
-        """Transform token features into numerical vectors."""
-        return self.vectorizer.transform(token_features_list)
+    def transform_meta_features(self, token_features_list):
+        """Transform meta features into numerical vectors."""
+        meta_features_list = [token["attributes"] for token in token_features_list]
+        return self.vectorizer.transform(meta_features_list)
 
-    def fit_transform(self, token_features_list):
+    def fit_transform_meta_features(self, token_features_list):
         """Fit and transform in a single step."""
-        return self.vectorizer.fit_transform(token_features_list)
+        meta_features_list = [token["attributes"] for token in token_features_list]
+        return self.vectorizer.fit_transform(meta_features_list)
 
     def get_features(self, html):
-        """Extract tokens, labels, and xpaths from HTML."""
+        """Extract tokens, labels, xpaths, and bounding boxes from HTML."""
         soup = BeautifulSoup(html, "lxml")
-        tokens, labels, xpaths = [], [], []
+        tokens, labels, xpaths, bboxes = [], [], [], []
 
         for tag in soup.find_all(["input", "button", "a", "iframe"]):
-            if any([tag.attrs.get("type") == "hidden",
-                    "hidden" in tag.attrs.get("class", []),
-                    "display:none" in tag.attrs.get("style", ""),
-                    ]):
-                continue
             label, token = self._extract_features(tag)
             xpath = get_xpath(tag)
+
+            bbox = self._get_bounding_box(tag)
 
             tokens.append(token)
             labels.append(self.label2id[label])
             xpaths.append(xpath)
+            bboxes.append(bbox)
 
-            logging.debug(f"Processed Tag: {tag}, Token: {token}, XPath: {xpath}")
-
-        return tokens, labels, xpaths
+        return tokens, labels, xpaths, bboxes
