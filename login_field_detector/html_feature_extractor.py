@@ -1,3 +1,6 @@
+"""
+
+"""
 import re
 import logging
 import functools
@@ -5,6 +8,7 @@ import json
 import os.path
 from sklearn.feature_extraction import DictVectorizer
 from bs4 import BeautifulSoup
+from transformers import BertTokenizerFast
 
 
 @functools.cache
@@ -48,44 +52,37 @@ class HTMLFeatureExtractor:
         self.oauth_providers = oauth_providers or OAUTH_PROVIDERS
         self.vectorizer = DictVectorizer(sparse=False)  # Initialize DictVectorizer
 
-    @staticmethod
-    def _extract_input_features(tag):
-        """Extract features for input elements."""
-        input_type = tag.get("type", "text").lower()
-        attributes = " ".join("".join(attr) if isinstance(attr, list) else attr for attr in tag.attrs.values()).lower()
-        if PATTERNS["USERNAME"].search(attributes):
-            return "USERNAME"
-        if input_type == "password" or PATTERNS["PASSWORD"].search(attributes):
-            return "PASSWORD"
-        if PATTERNS["2FA"].search(attributes):
-            return "2FA"
-        return "O"
-
-    def _extract_other_features(self, tag):
-        """Extract features for other elements like button, a, iframe."""
+    def _extract_features(self, tag):
+        """Extract features for any HTML tag."""
         text = tag.get_text(strip=True).lower()
-        href = tag.get("href", "").lower()
-        attributes = " ".join("".join(v) if isinstance(v, list) else v for v in tag.attrs.values()).lower()
-
-        if PATTERNS["LOGIN"].search(text + attributes):
-            return "LOGIN"
-        if any(provider in text + href for provider in self.oauth_providers):
-            return "OAUTH"
-        if "next" in text or "continue" in text:
-            return "NEXT"
-        return "O"
-
-    @staticmethod
-    def _generate_token(tag):
-        """Create a token representation for the given tag."""
-        parent = tag.find_parent()
-        parent_tag = parent.name if parent else "root"
-        return {
+        attributes = " ".join(
+            "".join(attr) if isinstance(attr, list) else attr for attr in tag.attrs.values()
+        ).lower()
+        features = {
             "tag": tag.name,
-            "text": tag.get_text(strip=True).lower(),
-            "parent_tag": parent_tag,
-            **tag.attrs.items(),
+            "text": text,
+            "parent_tag": tag.find_parent().name if tag.find_parent() else "root",
+            **tag.attrs,
         }
+
+        label = "O"
+        input_type = tag.get("type", "text").lower()
+        if tag.name == "input":
+            if PATTERNS["USERNAME"].search(attributes):
+                label = "USERNAME"
+            if input_type == "password" or PATTERNS["PASSWORD"].search(attributes):
+                label = "PASSWORD"
+            if PATTERNS["2FA"].search(attributes):
+                label = "2FA"
+        else:
+            if PATTERNS["LOGIN"].search(text + attributes):
+                label = "LOGIN"
+            if any(provider in text for provider in self.oauth_providers):
+                label = "OAUTH"
+            if "next" in text or "continue" in text:
+                label = "NEXT"
+
+        return label, features
 
     def fit(self, token_features_list):
         """Fit DictVectorizer on the entire dataset."""
@@ -95,34 +92,28 @@ class HTMLFeatureExtractor:
         """Transform token features into numerical vectors."""
         return self.vectorizer.transform(token_features_list)
 
+    def fit_transform(self, token_features_list):
+        """Fit and transform in a single step."""
+        return self.vectorizer.fit_transform(token_features_list)
+
     def get_features(self, html):
         """Extract tokens, labels, and xpaths from HTML."""
         soup = BeautifulSoup(html, "lxml")
         tokens, labels, xpaths = [], [], []
 
         for tag in soup.find_all(["input", "button", "a", "iframe"]):
-            if tag.name == "input" and tag.attrs.get("type") == "hidden":
-                continue  # Skip hidden inputs
-
-            if tag.name == "input":
-                label = self._extract_input_features(tag)
-            else:
-                label = self._extract_other_features(tag)
-
-            # Generate token and XPath
-            token = self._generate_token(tag)
+            if any([tag.attrs.get("type") == "hidden",
+                    "hidden" in tag.attrs.get("class", []),
+                    "display:none" in tag.attrs.get("style", ""),
+                    ]):
+                continue
+            label, token = self._extract_features(tag)
             xpath = get_xpath(tag)
 
-            # Append results
             tokens.append(token)
             labels.append(self.label2id[label])
             xpaths.append(xpath)
 
-            # Debug logging
-            logging.debug(f"Processed Tag: {tag}, Token: {token}, Label: {label}, XPath: {xpath}")
+            logging.debug(f"Processed Tag: {tag}, Token: {token}, XPath: {xpath}")
 
-        # Fit the vectorizer once on the entire dataset
-        if not self.vectorizer.feature_names_:  # Fit only if not fitted
-            self.fit(tokens)
-        # Transform features to vectors
-        return self.transform(tokens), labels, xpaths
+        return tokens, labels, xpaths
