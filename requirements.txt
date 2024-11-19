@@ -4,5 +4,7 @@ bs4
 torch
 accelerate
 lxml
+lxml_html_clean
 scikit-learn
+requests-html
 pytest

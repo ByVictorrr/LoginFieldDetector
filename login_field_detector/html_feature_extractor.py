@@ -3,7 +3,7 @@ import logging
 import functools
 import json
 import os.path
-import requests
+from sklearn.feature_extraction import DictVectorizer
 from bs4 import BeautifulSoup
 
 
@@ -12,17 +12,6 @@ def load_oauth_names():
     with open(os.path.join(os.path.dirname(__file__), "oauth_providers.json")) as flp:
         data = json.load(flp)
     return data
-
-
-def fetch_html(url):
-    """Fetch HTML content from a URL."""
-    try:
-        response = requests.get(url, timeout=10, allow_redirects=True)
-        response.raise_for_status()
-        return response.text
-    except requests.exceptions.RequestException as e:
-        print(f"Error fetching {url}: {e}")
-        return None
 
 
 def get_xpath(element):
@@ -57,12 +46,13 @@ class HTMLFeatureExtractor:
         """
         self.label2id = label2id
         self.oauth_providers = oauth_providers or OAUTH_PROVIDERS
+        self.vectorizer = DictVectorizer(sparse=False)  # Initialize DictVectorizer
 
     @staticmethod
     def _extract_input_features(tag):
         """Extract features for input elements."""
         input_type = tag.get("type", "text").lower()
-        attributes = " ".join(tag.get(attr, "").lower() for attr in ["id", "name", "class", "placeholder"])
+        attributes = " ".join("".join(attr) if isinstance(attr, list) else attr for attr in tag.attrs.values()).lower()
         if PATTERNS["USERNAME"].search(attributes):
             return "USERNAME"
         if input_type == "password" or PATTERNS["PASSWORD"].search(attributes):
@@ -75,7 +65,7 @@ class HTMLFeatureExtractor:
         """Extract features for other elements like button, a, iframe."""
         text = tag.get_text(strip=True).lower()
         href = tag.get("href", "").lower()
-        attributes = " ".join(f"{k} {v}" for k, v in tag.attrs.items()).lower()
+        attributes = " ".join("".join(v) if isinstance(v, list) else v for v in tag.attrs.values()).lower()
 
         if PATTERNS["LOGIN"].search(text + attributes):
             return "LOGIN"
@@ -90,15 +80,20 @@ class HTMLFeatureExtractor:
         """Create a token representation for the given tag."""
         parent = tag.find_parent()
         parent_tag = parent.name if parent else "root"
-        parent_attrs = " ".join(f"{k}={v}" for k, v in parent.attrs.items() if v) if parent else ""
-        token = {
+        return {
             "tag": tag.name,
             "text": tag.get_text(strip=True).lower(),
-            "attrs": " ".join(f"{k}={v}" for k, v in tag.attrs.items() if v),
             "parent_tag": parent_tag,
-            "parent_attrs": parent_attrs,
+            **tag.attrs.items(),
         }
-        return " ".join(filter(None, token.values()))
+
+    def fit(self, token_features_list):
+        """Fit DictVectorizer on the entire dataset."""
+        self.vectorizer.fit(token_features_list)
+
+    def transform(self, token_features_list):
+        """Transform token features into numerical vectors."""
+        return self.vectorizer.transform(token_features_list)
 
     def get_features(self, html):
         """Extract tokens, labels, and xpaths from HTML."""
@@ -126,4 +121,8 @@ class HTMLFeatureExtractor:
             # Debug logging
             logging.debug(f"Processed Tag: {tag}, Token: {token}, Label: {label}, XPath: {xpath}")
 
-        return tokens, labels, xpaths
+        # Fit the vectorizer once on the entire dataset
+        if not self.vectorizer.feature_names_:  # Fit only if not fitted
+            self.fit(tokens)
+        # Transform features to vectors
+        return self.transform(tokens), labels, xpaths

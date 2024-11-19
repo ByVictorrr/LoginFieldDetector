@@ -2,6 +2,7 @@ import os
 import functools
 import json
 from collections import defaultdict
+
 from transformers import (
     BertTokenizerFast,
     BertForTokenClassification,
@@ -13,7 +14,8 @@ import torch
 from datasets import Dataset
 from sklearn.metrics import classification_report
 
-from .html_feature_extractor import HTMLFeatureExtractor, LABELS, fetch_html
+from .html_feature_extractor import HTMLFeatureExtractor, LABELS
+from .cached_url import fetch_html
 
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 os.environ["USE_GPU"] = "true"
@@ -106,10 +108,8 @@ class LoginFieldDetector:
                     all_xpaths.append(xpaths)
         return all_tokens, all_labels, all_xpaths
 
-    def create_dataset(self, url_list):
-        """Create a HuggingFace dataset from tokenized input and labels."""
-        tokens_list, labels_list, _ = self.process_urls(url_list)
-
+    def create_dataset(self, tokens_list, labels_list):
+        """Create a dataset from tokens and labels."""
         data = defaultdict(list)
         for tokens, labels in zip(tokens_list, labels_list):
             inputs = self.tokenize_and_align_labels(tokens, labels)
@@ -120,17 +120,32 @@ class LoginFieldDetector:
 
     def train(self, urls=TRAINING_URLS, output_dir=f"{GIT_DIR}/fine_tuned_model", epochs=5, batch_size=4,
               learning_rate=5e-5):
-        """Train the model."""
-        # Create a single dataset
-        dataset = self.create_dataset(urls)
+        """Train the model with cached HTML."""
+        # Step 1: Fetch and cache HTML for all URLs
+        cached_html_data = []
+        for url in urls:
+            html = fetch_html(url)
+            if html:
+                cached_html_data.append((url, html))
 
-        if len(dataset) < 2:
+        if len(cached_html_data) < 2:
             raise ValueError("Dataset is too small. Provide more URLs or check the HTML parser.")
+
+        # Step 2: Process the HTML data to create a dataset
+        tokens_list, labels_list, _ = [], [], []
+        for url, html in cached_html_data:
+            tokens, labels, _ = self.feature_extractor.get_features(html)
+            tokens_list.append(tokens)
+            labels_list.append(labels)
+
+        # Create dataset
+        dataset = self.create_dataset(tokens_list, labels_list)
 
         # Split dataset
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
         print(f"Training samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}")
 
+        # Step 3: Training configuration
         training_args = TrainingArguments(
             output_dir=output_dir,
             evaluation_strategy="steps",
