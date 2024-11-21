@@ -1,16 +1,19 @@
 import os
 import functools
 import json
+from tqdm import tqdm
+import numpy as np
+import torch
+from datasets import Dataset
 from transformers import (
     Trainer,
     TrainingArguments,
     BertTokenizerFast,
     BertForSequenceClassification,
+    EarlyStoppingCallback
 )
-import torch
-from datasets import Dataset
 from sklearn.metrics import classification_report, accuracy_score
-from tqdm import tqdm
+from sklearn.utils.class_weight import compute_class_weight
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 from .cached_url import fetch_html
 
@@ -29,6 +32,35 @@ def get_training_urls():
 
 TRAINING_URLS = get_training_urls()
 GIT_DIR = os.path.dirname(os.path.dirname(__file__))
+
+
+def compute_metrics(pred):
+    labels = pred.label_ids
+    preds = pred.predictions.argmax(-1)
+    accuracy = accuracy_score(labels, preds)
+    return {"accuracy": accuracy}
+
+
+class WeightedTrainer(Trainer):
+    """Custom Trainer to apply class weights."""
+
+    def __init__(self, class_weights, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.class_weights = class_weights
+        self.loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
+
+    def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
+        # Extract labels
+        labels = inputs["labels"]
+
+        # Forward pass
+        outputs = model(**inputs)
+        logits = outputs.logits
+
+        # Calculate weighted loss
+        loss = self.loss_fn(logits, labels)
+
+        return (loss, outputs) if return_outputs else loss
 
 
 class LoginFieldDetector:
@@ -58,14 +90,7 @@ class LoginFieldDetector:
         self.model = self.model.to(self.device)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
 
-    def process_urls(self, url_list, o_label_ratio_threshold=0.1):
-        """
-        Fetch HTML, parse it, and generate feature-label pairs with a threshold on the ratio of "O" labels.
-
-        :param url_list: List of URLs to process.
-        :param o_label_ratio_threshold: Maximum allowable ratio of "O" labels in the data.
-        :return: Filtered inputs and labels.
-        """
+    def process_urls(self, url_list, o_label_ratio=0.001):
         all_inputs, all_labels = [], []
 
         for url in tqdm(url_list, desc="Processing URLs"):
@@ -74,12 +99,34 @@ class LoginFieldDetector:
                 html = fetch_html(url)
                 if html:
                     inputs, labels, _ = self.feature_extractor.get_features(html)
-                    all_inputs.extend(inputs)
-                    all_labels.extend(labels)
+                    if inputs and labels:
+                        all_inputs.extend(inputs)
+                        all_labels.extend(labels)
             except Exception as e:
                 print(f"Error processing {url}: {e}")
 
-        return all_inputs, all_labels
+        # Separate "O" labels and others
+        o_inputs, o_labels = [], []
+        non_o_inputs, non_o_labels = [], []
+
+        for input_data, label in zip(all_inputs, all_labels):
+            if label == self.label2id["O"]:
+                o_inputs.append(input_data)
+                o_labels.append(label)
+            else:
+                non_o_inputs.append(input_data)
+                non_o_labels.append(label)
+
+        # Limit the number of "O" labels based on the ratio
+        max_o_count = int(o_label_ratio * len(all_labels))
+        limited_o_inputs = o_inputs[:max_o_count]
+        limited_o_labels = o_labels[:max_o_count]
+
+        # Combine filtered "O" labels with the others
+        filtered_inputs = limited_o_inputs + non_o_inputs
+        filtered_labels = limited_o_labels + non_o_labels
+
+        return filtered_inputs, filtered_labels
 
     def create_dataset(self, inputs, labels):
         """Create a dataset compatible with BERT."""
@@ -103,7 +150,6 @@ class LoginFieldDetector:
         predictions, true_labels = [], []
 
         for example in dataset:
-            # Convert inputs to tensors
             input_ids = torch.tensor(example["input_ids"], dtype=torch.long).unsqueeze(0).to(self.device)
             attention_mask = torch.tensor(example["attention_mask"], dtype=torch.long).unsqueeze(0).to(self.device)
             labels = torch.tensor(example["labels"], dtype=torch.long).unsqueeze(0).to(self.device)
@@ -113,26 +159,22 @@ class LoginFieldDetector:
                 "attention_mask": attention_mask,
             }
 
-            # Perform inference
             with torch.no_grad():
                 outputs = self.model(**inputs)
             logits = outputs.logits
 
-            # Get predictions
             preds = torch.argmax(logits, dim=-1).squeeze().tolist()
             true = labels.squeeze().tolist()
 
-            # Append results
             predictions.extend(preds if isinstance(preds, list) else [preds])
             true_labels.extend(true if isinstance(true, list) else [true])
 
-        # Generate evaluation metrics
         print("Evaluation Results:")
         print(f"Accuracy: {accuracy_score(true_labels, predictions):.4f}")
         target_names = [self.id2label[i] for i in sorted(set(true_labels + predictions))]
         print(classification_report(true_labels, predictions, target_names=target_names))
 
-    def train(self, urls=TRAINING_URLS, output_dir=f"{GIT_DIR}/fine_tuned_model", epochs=1, batch_size=4):
+    def train(self, urls=TRAINING_URLS, output_dir=f"{GIT_DIR}/fine_tuned_model", epochs=10, batch_size=4):
         """Train the model with cached HTML."""
         inputs, labels = self.process_urls(urls)
 
@@ -143,22 +185,49 @@ class LoginFieldDetector:
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
         print(f"Training samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}")
 
+        # Ensure class weights are computed for all possible classes
+        num_classes = len(self.labels)  # Total number of classes
+        unique_classes = np.unique(labels)  # Classes present in the data
+
+        # Compute weights only for present classes
+        partial_class_weights = compute_class_weight(
+            class_weight="balanced",
+            classes=unique_classes,
+            y=labels,
+        )
+
+        # Fill missing class weights with a default value (e.g., 1.0)
+        complete_class_weights = np.ones(num_classes, dtype=np.float32)  # Default weight 1.0
+        for cls, weight in zip(unique_classes, partial_class_weights):
+            complete_class_weights[cls] = weight
+
+        # Convert to torch tensor
+        class_weights = torch.tensor(complete_class_weights).to(self.device)
+        print(f"Class weights: {class_weights}")
+
         training_args = TrainingArguments(
             output_dir=output_dir,
-            evaluation_strategy="steps",
+            evaluation_strategy="steps",  # Evaluate every `eval_steps`
+            eval_steps=500,  # Customize the evaluation frequency
             save_strategy="steps",
             per_device_train_batch_size=batch_size,
             num_train_epochs=epochs,
             logging_dir=f"{GIT_DIR}/logs",
             logging_strategy="steps",
+            metric_for_best_model="accuracy",  # Metric to monitor
+            load_best_model_at_end=True,  # Load the best model when training stops
             fp16=torch.cuda.is_available(),
         )
 
-        trainer = Trainer(
+        # Use the custom WeightedTrainer
+        trainer = WeightedTrainer(
             model=self.model,
             args=training_args,
             train_dataset=train_dataset,
             eval_dataset=val_dataset,
+            class_weights=class_weights,
+            compute_metrics=compute_metrics,
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
         )
 
         print("Starting training...")

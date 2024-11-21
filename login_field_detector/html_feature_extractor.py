@@ -44,21 +44,23 @@ class HTMLFeatureExtractor:
 
     def preprocess_field(self, tag):
         """
-        Preprocess an HTML token to combine text and sorted metadata.
+        Preprocess an HTML token to combine text and sorted metadata into a structured format.
         """
-        # Extract text and metadata
+        # Extract text content from the HTML tag
         text = tag.get_text(strip=True).lower()
-        # Sort metadata by keys and values (if they are lists)
+
+        # Sort and process metadata attributes
         sorted_metadata = {
-            k: " ".join(sorted(v)) if isinstance(v, list) else v
+            k: " ".join(sorted(v)) if isinstance(v, list) else str(v)  # Ensure all values are strings
             for k, v in sorted(tag.attrs.items())
         }
 
-        # Serialize metadata into a key=value format
-        metadata_str = " | ".join(f"{k}={v}" for k, v in sorted_metadata.items())
+        # Format metadata as [KEY:VALUE] pairs
+        metadata_str = " ".join(f"[{k.upper()}:{v}]" for k, v in sorted_metadata.items())
 
-        # Combine text and metadata
-        combined_input = f"{text} | {metadata_str}"
+        # Combine text and metadata into a single string
+        combined_input = f"[TAG:{tag.name}] {f'[TEXT:{text}]' if text else ''} {metadata_str}"
+
         return combined_input
 
     def get_features(self, html):
@@ -74,7 +76,7 @@ class HTMLFeatureExtractor:
                     [
                         tag.attrs.get("type") == "hidden",
                         "hidden" in tag.attrs.get("class", []),
-                        "display:none" in tag.attrs.get("style", ""),
+                        "display: none" in tag.attrs.get("style", ""),
                     ]
             ):
                 continue
@@ -97,21 +99,49 @@ class HTMLFeatureExtractor:
 
     def _determine_label(self, tag):
         """Determine the label of an HTML tag based on patterns."""
-        text = tag.get_text(strip=True).lower()
-        # Sort metadata by keys and values (if they are lists)
-        input_type = tag.attrs.get("type", "text").lower()
+        text = tag.get_text(strip=True).lower()  # Extract the visible text inside the tag
+        input_type = tag.attrs.get("type", "text").lower()  # Default to "text" if no type
+
+        # Normalize attributes: lowercase keys, convert lists to space-separated strings
+        attributes = {
+            k.lower(): (v if isinstance(v, str) else " ".join(v) if isinstance(v, list) else "")
+            for k, v in tag.attrs.items()
+        }
+
+        # If the tag is an input element
         if tag.name == "input":
-            if PATTERNS["USERNAME"].search(text):
+            # Check for USERNAME
+            if (
+                    PATTERNS["USERNAME"].search(text)
+                    or any(PATTERNS["USERNAME"].search(v.lower()) for v in attributes.values())
+            ):
                 return "USERNAME"
-            if input_type == "password" or PATTERNS["PASSWORD"].search(text):
+
+            # Check for PASSWORD
+            if (
+                    input_type == "password"
+                    or PATTERNS["PASSWORD"].search(text)
+                    or any(PATTERNS["PASSWORD"].search(v.lower()) for v in attributes.values())
+                    or tag.attrs.get("type", "").lower() == "password"
+            ):
                 return "PASSWORD"
+
+            # Check for 2FA
             if PATTERNS["2FA"].search(text):
                 return "2FA"
-        else:
-            if PATTERNS["LOGIN"].search(text):
-                return "LOGIN"
-            if any(provider in text for provider in self.oauth_providers):
-                return "OAUTH"
-            if "next" in text or "continue" in text:
-                return "NEXT"
+
+        # Non-input tags
+        if (
+            PATTERNS["LOGIN"].search(text)
+            or tag.attrs.get("type", "").lower() == "submit"
+
+        ):
+            return "LOGIN"
+        if any(provider in text for provider in self.oauth_providers):
+            return "OAUTH"
+        if "next" in text or "continue" in text:
+            return "NEXT"
+
+        # Default label
         return "O"
+
