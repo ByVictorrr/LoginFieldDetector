@@ -111,36 +111,39 @@ class HTMLFeatureExtractor:
         # If the tag is an input element
         if tag.name == "input":
             # Check for USERNAME
-            if (
-                    PATTERNS["USERNAME"].search(text)
-                    or any(PATTERNS["USERNAME"].search(v.lower()) for v in attributes.values())
-            ):
+            if PATTERNS["USERNAME"].search(text) or any(PATTERNS["USERNAME"].search(v) for v in attributes.values()):
                 return "USERNAME"
 
             # Check for PASSWORD
             if (
                     input_type == "password"
                     or PATTERNS["PASSWORD"].search(text)
-                    or any(PATTERNS["PASSWORD"].search(v.lower()) for v in attributes.values())
+                    or any(PATTERNS["PASSWORD"].search(v) for v in attributes.values())
                     or tag.attrs.get("type", "").lower() == "password"
             ):
                 return "PASSWORD"
 
-            # Check for 2FA
-            if PATTERNS["2FA"].search(text):
+                # Check for 2FA
+            if PATTERNS["2FA"].search(text) or any(PATTERNS["2FA"].search(v) for v in attributes.values()):
                 return "2FA"
 
-        # Non-input tags
-        if (
-            PATTERNS["LOGIN"].search(text)
-            or tag.attrs.get("type", "").lower() == "submit"
+        # Process 'button' tags
+        if tag.name == "button":
+            if PATTERNS["LOGIN"].search(text) or attributes.get("type") == "submit":
+                return "LOGIN"
 
-        ):
-            return "LOGIN"
-        if any(provider in text for provider in self.oauth_providers):
-            return "OAUTH"
-        if "next" in text or "continue" in text:
-            return "NEXT"
+        # Process 'a' tags
+        if tag.name == "a":
+            if any(provider in text for provider in self.oauth_providers):
+                return "OAUTH"
+            if "next" in text or "continue" in text:
+                return "NEXT"
+
+        # Process 'iframe' tags
+        if tag.name == "iframe":
+            if "oauth" in attributes.get("src", "") or \
+                    any(p in text + attributes.get("href", "") for p in self.oauth_providers):
+                return "OAUTH"
 
         # Default label
         return "O"
