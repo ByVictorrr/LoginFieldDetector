@@ -12,6 +12,8 @@ if not os.path.exists(CACHE_DIR):
     os.makedirs(CACHE_DIR)
 
 SESSION = HTMLSession()  # Single session for all requests
+# Add the cookie for consent
+SESSION.cookies.set("CookieConsent", "true")
 
 
 def get_cache_file(url):
