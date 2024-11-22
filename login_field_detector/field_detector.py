@@ -1,5 +1,4 @@
 import os
-import functools
 import json
 from tqdm import tqdm
 import numpy as np
@@ -8,8 +7,8 @@ from datasets import Dataset
 from transformers import (
     Trainer,
     TrainingArguments,
-    BertTokenizerFast,
-    BertForSequenceClassification,
+    LayoutLMForTokenClassification,
+    LayoutLMTokenizerFast,
     EarlyStoppingCallback
 )
 from sklearn.metrics import classification_report, accuracy_score
@@ -17,209 +16,156 @@ from sklearn.utils.class_weight import compute_class_weight
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 from .cached_url import fetch_html
 
+# Environment setup
 os.environ["TOKENIZERS_PARALLELISM"] = "true"
 os.environ["USE_GPU"] = "true"
 
 
-@functools.cache
-def get_training_urls():
-    """Load training URLs from a JSON file."""
-    dir_name = os.path.dirname(__file__)
-    with open(os.path.join(dir_name, "training_urls.json"), "r") as flp:
-        urls = json.load(flp)
-    return urls
-
-
-TRAINING_URLS = get_training_urls()
-GIT_DIR = os.path.dirname(os.path.dirname(__file__))
-
-
 def compute_metrics(pred):
+    """Compute evaluation metrics."""
     labels = pred.label_ids
     preds = pred.predictions.argmax(-1)
-    accuracy = accuracy_score(labels, preds)
+
+    # Flatten arrays
+    labels_flat = labels[labels != -100]
+    preds_flat = preds[labels != -100]
+
+    # Print classification report
+    print(classification_report(labels_flat, preds_flat, target_names=LABELS))
+
+    accuracy = accuracy_score(labels_flat, preds_flat)
+
     return {"accuracy": accuracy}
 
 
 class WeightedTrainer(Trainer):
-    """Custom Trainer to apply class weights."""
+    """Custom Trainer with support for weighted loss."""
 
     def __init__(self, class_weights, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.class_weights = class_weights
-        self.loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
+        self.loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights, ignore_index=-100)
 
     def compute_loss(self, model, inputs, return_outputs=False, **kwargs):
-        # Extract labels
-        labels = inputs["labels"]
-
-        # Forward pass
+        """Compute loss and handle logits/labels alignment."""
         outputs = model(**inputs)
-        logits = outputs.logits
+        logits = outputs.logits  # Shape: [batch_size, seq_length, num_classes]
+        labels = inputs["labels"]  # Shape: [batch_size, seq_length]
 
-        # Calculate weighted loss
+        # Flatten logits and labels
+        logits = logits.view(-1, logits.size(-1))  # Shape: [batch_size * seq_length, num_classes]
+        labels = labels.view(-1)  # Shape: [batch_size * seq_length]
+
+        # Check alignment
+        if logits.size(0) != labels.size(0):
+            raise ValueError(f"Logits and labels shape mismatch: {logits.size(0)} != {labels.size(0)}")
+
         loss = self.loss_fn(logits, labels)
-
         return (loss, outputs) if return_outputs else loss
 
 
 class LoginFieldDetector:
-    def __init__(self, model_dir=f"{GIT_DIR}/fine_tuned_model", labels=None, device=None):
+    """Main class for training and evaluating the LayoutLM model for login field detection."""
+
+    def __init__(self, model_dir="fine_tuned_model", labels=None, device=None):
         self.labels = labels or LABELS
         self.label2id = {label: i for i, label in enumerate(self.labels)}
         self.id2label = {i: label for label, i in self.label2id.items()}
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-        if os.path.exists(model_dir):
-            self.tokenizer = BertTokenizerFast.from_pretrained(model_dir)
-            self.model = BertForSequenceClassification.from_pretrained(
-                model_dir,
-                num_labels=len(self.labels),
-                id2label=self.id2label,
-                label2id=self.label2id,
-            )
-        else:
-            self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
-            self.model = BertForSequenceClassification.from_pretrained(
-                "bert-base-uncased",
-                num_labels=len(self.labels),
-                id2label=self.id2label,
-                label2id=self.label2id,
-            )
+        # Load pre-trained model and tokenizer
+        self.tokenizer = LayoutLMTokenizerFast.from_pretrained("microsoft/layoutlmv2-base-uncased")
+        self.model = LayoutLMForTokenClassification.from_pretrained(
+            "microsoft/layoutlmv2-base-uncased",
+            num_labels=len(self.labels),
+            id2label=self.id2label,
+            label2id=self.label2id,
+        ).to(self.device)
+        self.model.gradient_checkpointing_enable()
 
-        self.model = self.model.to(self.device)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
 
-    def process_urls(self, url_list, o_label_ratio=0.001):
-        all_inputs, all_labels = [], []
-
-        for url in tqdm(url_list, desc="Processing URLs"):
-            print(f"Processing {url}")
+    def process_urls(self, urls, o_label_ratio=0.001):
+        """Fetch HTML, extract features, and preprocess."""
+        inputs, labels = [], []
+        for url in tqdm(urls, desc="Processing URLs"):
             try:
                 html = fetch_html(url)
                 if html:
-                    inputs, labels, _ = self.feature_extractor.get_features(html)
-                    if inputs and labels:
-                        all_inputs.extend(inputs)
-                        all_labels.extend(labels)
+                    tokens, token_labels, _ = self.feature_extractor.get_features(html)
+                    assert len(tokens) == len(
+                        token_labels), f"Tokens and labels mismatch: {len(tokens)} != {len(token_labels)}"
+                    inputs.extend(tokens)
+                    labels.extend(token_labels)
             except Exception as e:
                 print(f"Error processing {url}: {e}")
 
-        # Separate "O" labels and others
-        o_inputs, o_labels = [], []
-        non_o_inputs, non_o_labels = [], []
+        return self._filter_o_labels(inputs, labels, o_label_ratio)
 
-        for input_data, label in zip(all_inputs, all_labels):
-            if label == self.label2id["O"]:
-                o_inputs.append(input_data)
-                o_labels.append(label)
+    def _filter_o_labels(self, inputs, labels, ratio):
+        """Filter 'O' labels to balance dataset."""
+        o_inputs, o_labels, non_o_inputs, non_o_labels = [], [], [], []
+        for inp, lbl in zip(inputs, labels):
+            if lbl == self.label2id["O"]:
+                o_inputs.append(inp)
+                o_labels.append(lbl)
             else:
-                non_o_inputs.append(input_data)
-                non_o_labels.append(label)
+                non_o_inputs.append(inp)
+                non_o_labels.append(lbl)
 
-        # Limit the number of "O" labels based on the ratio
-        max_o_count = int(o_label_ratio * len(all_labels))
-        limited_o_inputs = o_inputs[:max_o_count]
-        limited_o_labels = o_labels[:max_o_count]
-
-        # Combine filtered "O" labels with the others
-        filtered_inputs = limited_o_inputs + non_o_inputs
-        filtered_labels = limited_o_labels + non_o_labels
-
+        max_o_count = int(ratio * len(labels))
+        filtered_inputs = o_inputs[:max_o_count] + non_o_inputs
+        filtered_labels = o_labels[:max_o_count] + non_o_labels
         return filtered_inputs, filtered_labels
 
     def create_dataset(self, inputs, labels):
-        """Create a dataset compatible with BERT."""
         encodings = self.tokenizer(
             inputs,
             truncation=True,
             padding=True,
-            max_length=512,
+            max_length=256,
             return_tensors="pt",
         )
+        adjusted_labels = []
+        for label, input_ids in zip(labels, encodings["input_ids"]):
+            if isinstance(label, int):
+                adjusted_labels.append([label] * len(input_ids))  # Sequence-level labels
+            elif isinstance(label, list):
+                adjusted_labels.append(label + [-100] * (len(input_ids) - len(label)))  # Token-level labels
 
-        data = {
+        return Dataset.from_dict({
             "input_ids": encodings["input_ids"],
             "attention_mask": encodings["attention_mask"],
-            "labels": torch.tensor(labels, dtype=torch.long),
-        }
-        return Dataset.from_dict(data)
+            "labels": torch.tensor(adjusted_labels, dtype=torch.long),
+        })
 
-    def evaluate_model(self, dataset):
-        """Evaluate the model on a given dataset."""
-        predictions, true_labels = [], []
-
-        for example in dataset:
-            input_ids = torch.tensor(example["input_ids"], dtype=torch.long).unsqueeze(0).to(self.device)
-            attention_mask = torch.tensor(example["attention_mask"], dtype=torch.long).unsqueeze(0).to(self.device)
-            labels = torch.tensor(example["labels"], dtype=torch.long).unsqueeze(0).to(self.device)
-
-            inputs = {
-                "input_ids": input_ids,
-                "attention_mask": attention_mask,
-            }
-
-            with torch.no_grad():
-                outputs = self.model(**inputs)
-            logits = outputs.logits
-
-            preds = torch.argmax(logits, dim=-1).squeeze().tolist()
-            true = labels.squeeze().tolist()
-
-            predictions.extend(preds if isinstance(preds, list) else [preds])
-            true_labels.extend(true if isinstance(true, list) else [true])
-
-        print("Evaluation Results:")
-        print(f"Accuracy: {accuracy_score(true_labels, predictions):.4f}")
-        target_names = [self.id2label[i] for i in sorted(set(true_labels + predictions))]
-        print(classification_report(true_labels, predictions, target_names=target_names))
-
-    def train(self, urls=TRAINING_URLS, output_dir=f"{GIT_DIR}/fine_tuned_model", epochs=10, batch_size=4):
-        """Train the model with cached HTML."""
+    def train(self, urls, output_dir="fine_tuned_model", epochs=10, batch_size=1):
+        """Train the model."""
         inputs, labels = self.process_urls(urls)
 
+        # Check for sufficient data
         if len(inputs) < 2:
-            raise ValueError("Dataset is too small. Provide more URLs or check the HTML parser.")
+            raise ValueError("Insufficient data for training.")
 
         dataset = self.create_dataset(inputs, labels)
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
-        print(f"Training samples: {len(train_dataset)}, Validation samples: {len(val_dataset)}")
 
-        # Ensure class weights are computed for all possible classes
-        num_classes = len(self.labels)  # Total number of classes
-        unique_classes = np.unique(labels)  # Classes present in the data
-
-        # Compute weights only for present classes
-        partial_class_weights = compute_class_weight(
-            class_weight="balanced",
-            classes=unique_classes,
-            y=labels,
-        )
-
-        # Fill missing class weights with a default value (e.g., 1.0)
-        complete_class_weights = np.ones(num_classes, dtype=np.float32)  # Default weight 1.0
-        for cls, weight in zip(unique_classes, partial_class_weights):
-            complete_class_weights[cls] = weight
-
-        # Convert to torch tensor
-        class_weights = torch.tensor(complete_class_weights).to(self.device)
-        print(f"Class weights: {class_weights}")
+        # Compute class weights
+        class_weights = self._compute_class_weights(labels)
 
         training_args = TrainingArguments(
             output_dir=output_dir,
-            evaluation_strategy="steps",  # Evaluate every `eval_steps`
-            eval_steps=500,  # Customize the evaluation frequency
-            save_strategy="steps",
             per_device_train_batch_size=batch_size,
+            gradient_accumulation_steps=4,
             num_train_epochs=epochs,
-            logging_dir=f"{GIT_DIR}/logs",
-            logging_strategy="steps",
-            metric_for_best_model="accuracy",  # Metric to monitor
-            load_best_model_at_end=True,  # Load the best model when training stops
-            fp16=torch.cuda.is_available(),
+            evaluation_strategy="steps",
+            save_strategy="steps",
+            logging_dir="logs",
+            fp16=True,
+            load_best_model_at_end=True,
+            metric_for_best_model="accuracy",
         )
 
-        # Use the custom WeightedTrainer
         trainer = WeightedTrainer(
             model=self.model,
             args=training_args,
@@ -227,38 +173,44 @@ class LoginFieldDetector:
             eval_dataset=val_dataset,
             class_weights=class_weights,
             compute_metrics=compute_metrics,
-            callbacks=[EarlyStoppingCallback(early_stopping_patience=3)]
+            callbacks=[EarlyStoppingCallback(early_stopping_patience=3)],
         )
 
-        print("Starting training...")
         trainer.train()
         trainer.save_model(output_dir)
-        self.evaluate_model(val_dataset)
+
+    def _compute_class_weights(self, labels):
+        """Compute weights for imbalanced classes."""
+        weights = compute_class_weight("balanced", classes=np.unique(labels), y=labels)
+        return torch.tensor(weights, dtype=torch.float32).to(self.device)
 
     def predict(self, html_text):
-        """Predict the labels for a given HTML text."""
+        """Run predictions on given HTML."""
+        if not html_text or not html_text.strip():
+            raise ValueError("HTML input is empty or invalid.")
+
         tokens, _, xpaths = self.feature_extractor.get_features(html_text)
+
+        # Debugging tokens
+        print(f"Tokens: {tokens}")
+        if not tokens:
+            return [{"token": None, "label": "O", "xpath": None}]
 
         encodings = self.tokenizer(
             tokens,
             truncation=True,
             padding=True,
-            max_length=512,
+            max_length=256,
             return_tensors="pt",
         )
-
         inputs = {key: value.to(self.device) for key, value in encodings.items()}
 
         with torch.no_grad():
-            outputs = self.model(**inputs)
-        logits = outputs.logits
-        predicted_ids = torch.argmax(logits, dim=-1).tolist()
+            logits = self.model(**inputs).logits
+        preds = torch.argmax(logits, dim=-1).tolist()
 
-        predictions = [{"token": token, "predicted_label": self.id2label[pred], "xpath": xpath}
-                       for token, pred, xpath in zip(tokens, predicted_ids, xpaths)]
-        return predictions
+        return [{"token": t, "label": self.id2label[p], "xpath": x} for t, p, x in zip(tokens, preds, xpaths)]
 
 
 if __name__ == "__main__":
     detector = LoginFieldDetector()
-    detector.train()

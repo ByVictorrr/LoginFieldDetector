@@ -2,10 +2,9 @@ import os
 import time
 import hashlib
 from requests_html import HTMLSession
-from playwright.sync_api import sync_playwright
 
 # Configuration
-CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "html_cache")
+CACHE_DIR = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "html_cache")
 TTL_SECONDS = 24 * 3600  # 24 hours
 
 # Initialize the cache directory

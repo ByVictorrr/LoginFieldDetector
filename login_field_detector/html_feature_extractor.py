@@ -26,11 +26,13 @@ def get_xpath(element):
 # Label definitions
 LABELS = ["O", "USERNAME", "PASSWORD", "2FA", "NEXT", "LOGIN", "OAUTH"]
 PATTERNS = {
-    "USERNAME": re.compile(r"(email|phone|user|username|account|login)", re.IGNORECASE),
-    "PASSWORD": re.compile(r"(pass|password|pwd|secret)", re.IGNORECASE),
-    "2FA": re.compile(r"(2fa|auth|code|otp|verification|token)", re.IGNORECASE),
-    "LOGIN": re.compile(r"(login|log in|sign in|continue)", re.IGNORECASE),
+    "USERNAME": re.compile(r"(email|e-mail|phone|user|username|account|id|identifier)", re.IGNORECASE),
+    "PASSWORD": re.compile(r"(pass|password|pwd|secret|key|pin|phrase)", re.IGNORECASE),
+    "2FA": re.compile(r"(2fa|auth|code|otp|verification|token|one-time)", re.IGNORECASE),
+    "LOGIN": re.compile(r"(login|log in|sign in|access|proceed|continue|submit|sign-on)", re.IGNORECASE),
 }
+
+
 OAUTH_PROVIDERS = load_oauth_names()
 
 
@@ -44,23 +46,24 @@ class HTMLFeatureExtractor:
 
     def preprocess_field(self, tag):
         """
-        Preprocess an HTML token to combine text and sorted metadata into a structured format.
+        Preprocess an HTML token to combine text, parent, sibling, and metadata.
         """
-        # Extract text content from the HTML tag
         text = tag.get_text(strip=True).lower()
 
         # Sort and process metadata attributes
         sorted_metadata = {
-            k: " ".join(sorted(v)) if isinstance(v, list) else str(v)  # Ensure all values are strings
+            k: " ".join(sorted(v)) if isinstance(v, list) else str(v)
             for k, v in sorted(tag.attrs.items())
         }
-
-        # Format metadata as [KEY:VALUE] pairs
         metadata_str = " ".join(f"[{k.upper()}:{v}]" for k, v in sorted_metadata.items())
 
-        # Combine text and metadata into a single string
-        combined_input = f"[TAG:{tag.name}] {f'[TEXT:{text}]' if text else ''} {metadata_str}"
+        # Extract parent tag and sibling information
+        parent_tag = f"[PARENT:{tag.parent.name}]" if tag.parent else "[PARENT:NONE]"
+        previous_sibling = f"[PREV_SIBLING:{tag.find_previous_sibling().name}]" if tag.find_previous_sibling() else "[PREV_SIBLING:NONE]"
+        next_sibling = f"[NEXT_SIBLING:{tag.find_next_sibling().name}]" if tag.find_next_sibling() else "[NEXT_SIBLING:NONE]"
 
+        # Combine all into a single string
+        combined_input = f"[TAG:{tag.name}] {f'[TEXT:{text}]' if text else ''} {parent_tag} {previous_sibling} {next_sibling} {metadata_str}"
         return combined_input
 
     def get_features(self, html):
@@ -141,8 +144,7 @@ class HTMLFeatureExtractor:
 
         # Process 'iframe' tags
         if tag.name == "iframe":
-            if "oauth" in attributes.get("src", "") or \
-                    any(p in text + attributes.get("href", "") for p in self.oauth_providers):
+            if any(provider in text for provider in self.oauth_providers):
                 return "OAUTH"
 
         # Default label
