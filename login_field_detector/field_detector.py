@@ -207,8 +207,10 @@ class LoginFieldDetector:
 
         with torch.no_grad():
             logits = self.model(**inputs).logits
-        preds = torch.argmax(logits, dim=-1).tolist()
 
+        # Flatten logits and get predictions
+        logits = logits.view(-1, logits.size(-1))
+        preds = torch.argmax(logits, dim=-1).tolist()
         return [{"token": t, "label": self.id2label[p], "xpath": x} for t, p, x in zip(tokens, preds, xpaths)]
 
 

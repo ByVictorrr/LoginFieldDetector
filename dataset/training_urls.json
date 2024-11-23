@@ -366,7 +366,6 @@
   "https://www.nationalgridus.com/login",
   "https://www.coned.com/en/login",
   "https://www.dominionenergy.com/login",
-
   "https://www.statefarm.com/login",
   "https://ecams.geico.com/login",
   "https://account.apps.progressive.com/access/login",
@@ -384,7 +383,6 @@
   "https://www.rei.com/YourAccountLoginView",
   "https://www.overstock.com/account/login",
   "https://www.ebgames.com.au/account/login",
-
   "https://www.expedia.com/user/signin",
   "https://www.booking.com/signin",
   "https://www.airbnb.com/login",
@@ -443,7 +441,6 @@
   "https://www.theatlantic.com/login",
   "https://www.vox.com/login",
   "https://slate.com/sign-in",
-
   "https://www.walmart.com/account/login",
   "https://signin.ebay.com/",
   "https://www.target.com/account/login",
@@ -469,7 +466,6 @@
   "https://www.landsend.com/co/account/login",
   "https://www.patagonia.com/account/login",
   "https://www.backcountry.com/login",
-
   "https://www.myfitnesspal.com/account/login",
   "https://www.strava.com/login",
   "https://www.runkeeper.com/login",
@@ -492,5 +488,4 @@
   "https://www.sleepcycle.com/login",
   "https://www.fitplanapp.com/login/",
   "https://www.mywellness.com/login/User/Login/"
-
-  ]
+]
