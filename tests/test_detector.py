@@ -1,19 +1,46 @@
+import os
 import json
-import os.path
-
 import pytest
-from login_field_detector import LoginFieldDetector, fetch_html
+import asyncio
+from login_field_detector import LoginFieldDetector, DataLoader, fetch_html
+
+
+@pytest.fixture(scope="session")
+async def load_html():
+    """Asynchronous fixture to load HTML using DataLoader."""
+    data_loader = DataLoader()
+    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
+
+    # Load URLs from the JSON file
+    with open(file_path, "r") as file:
+        training_urls = json.load(file)[:20]
+
+    # Fetch all HTML asynchronously
+    html_data = await data_loader.fetch_all(training_urls)
+    return html_data
 
 
 @pytest.fixture(scope="session")
 def detector():
-    """Fixture to initialize LoginFieldDetector."""
-    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
-    with open(file_path, "r") as file:
-        training_urls = json.load(file)
-    detector = LoginFieldDetector()
-    detector.train(urls=training_urls)
-    return detector
+    """Synchronous fixture to initialize and train LoginFieldDetector."""
+
+    async def async_setup():
+        # Resolve `load_html` asynchronously
+        data_loader = DataLoader()
+        file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
+
+        with open(file_path, "r") as file:
+            training_urls = json.load(file)
+
+        html_data = await data_loader.fetch_all(training_urls)
+
+        # Initialize and train the detector
+        detector = LoginFieldDetector()
+        detector.train([html for html, _ in html_data])  # Pass only HTML data
+        return detector
+
+    # Run the async setup synchronously
+    return asyncio.run(async_setup())
 
 
 @pytest.mark.parametrize("url", [
