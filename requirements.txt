@@ -8,5 +8,5 @@ lxml_html_clean
 scikit-learn
 requests-html
 matplotlib
-playwright
+pycountry
 pytest

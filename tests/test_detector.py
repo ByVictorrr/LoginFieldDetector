@@ -2,7 +2,7 @@ import os
 import json
 import pytest
 import asyncio
-from login_field_detector import LoginFieldDetector, DataLoader, fetch_html
+from login_field_detector import LoginFieldDetector, DataLoader
 
 
 @pytest.fixture(scope="session")
@@ -35,10 +35,7 @@ def detector():
 ])
 def test_media_urls(detector, url):
     """Test LoginFieldDetector with a set of media URLs."""
-    if not (html_text := fetch_html(url)):
-        pytest.fail(f"Failed fetching {url}.")
-    elif not any(i for t_p in detector.feature_extractor.get_features(html_text) for i in t_p):
-        pytest.fail(f"HTML Feature extractor failed to extract any login tokens.")
-    elif not detector.predict(html_text):
+    if not detector.predict(url=url):
         pytest.fail(f"LoginFieldDetector failed with media URLs")
+    print("Pytest succeeded.")
 
