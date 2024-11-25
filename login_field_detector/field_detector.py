@@ -234,13 +234,21 @@ class LoginFieldDetector:
         plt.show()
 
     def plot_confusion_matrix(self, true_labels, pred_labels):
-        """Plot confusion matrix."""
+        """Plot confusion matrix with improved x-axis label spacing."""
         cm = confusion_matrix(true_labels, pred_labels, labels=list(range(len(self.labels))))
         disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self.labels)
-        disp.plot(cmap="Blues", xticks_rotation=45)
+
+        # Set figure size to provide more space
+        fig, ax = plt.subplots(figsize=(12, 12))  # Adjust the size as needed
+        disp.plot(cmap="Blues", xticks_rotation=45, ax=ax)
+
+        # Increase padding for x-axis labels
+        plt.xticks(rotation=45, ha="right", rotation_mode="anchor")  # Rotate and align x-axis labels
+        plt.subplots_adjust(bottom=0.25)  # Add padding to the bottom to avoid label cutoff
+
+        # Set title and show the plot
         plt.title("Confusion Matrix")
         plt.show()
-
     def evaluate(self, dataset):
         """Evaluate the model on a dataset and plot confusion matrix."""
         predictions, true_labels = [], []
