@@ -9,4 +9,5 @@ scikit-learn
 requests-html
 matplotlib
 playwright
+nest-asyncio
 pytest

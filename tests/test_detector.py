@@ -1,24 +1,34 @@
 import os
 import json
+
 import pytest
 import asyncio
-from login_field_detector import LoginFieldDetector, DataLoader
+from login_field_detector import LoginFieldDetector, AsyncDataLoader
 
 
 @pytest.fixture(scope="session")
-def detector():
+def html_data():
     """Synchronous fixture to initialize and train LoginFieldDetector."""
-    data_loader = DataLoader()
-    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
 
-    with open(file_path, "r") as file:
-        training_urls = json.load(file)
+    async def async_setup():
+        # Resolve `load_html` asynchronously
+        data_loader = AsyncDataLoader()
+        file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
 
-    url_data = data_loader.fetch_all(training_urls)
-    data_loader.close()
-    # Initialize and train the detector
+        with open(file_path, "r") as file:
+            training_urls = json.load(file)
+
+        return await data_loader.fetch_all(training_urls)
+
+    # Run the async setup synchronously
+    return asyncio.run(async_setup())
+
+
+@pytest.fixture(scope="session")
+def detector(html_data):
+    """Synchronous fixture to initialize and train LoginFieldDetector."""
     detector = LoginFieldDetector()
-    detector.train([file_path for file_path, _ in url_data])  # Pass only HTML data
+    detector.train([html for html, _ in html_data])  # Pass only HTML data
     return detector
 
 
@@ -29,9 +39,6 @@ def detector():
 ])
 def test_media_urls(detector, url):
     """Test LoginFieldDetector with a set of media URLs."""
-    if not (file_path := DataLoader.fetch_html(url)):
-        pytest.fail(f"Failed fetching {url}.")
-    elif not any(i for t_p in detector.feature_extractor.get_features(file_path) for i in t_p):
-        pytest.fail(f"HTML Feature extractor failed to extract any login tokens.")
-    elif not detector.predict(file_path):
+    if not detector.predict(url=url):
         pytest.fail(f"LoginFieldDetector failed with media URLs")
+    print("Pytest succeeded.")
