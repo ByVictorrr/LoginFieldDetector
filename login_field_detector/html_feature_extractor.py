@@ -2,6 +2,7 @@ import os
 import re
 import json
 from bs4 import BeautifulSoup
+import pycountry
 from .data_loader import fetch_html
 
 
@@ -27,6 +28,7 @@ LABELS = [
     "SOCIAL_LOGIN_BUTTONS",
     "CAPTCHA",
     # below does not count
+    "LANGUAGE_SWITCH",
     "FORGOT_PASSWORD",
     "SIGN_UP",
     "REMEMBER_ME",
@@ -39,26 +41,30 @@ LABELS = [
     "COOKIE_POLICY",
     "IMPRINT"
 ]
-
+LANGUAGES = ['english', 'chinese', 'spanish', 'hindi', 'arabic', 'bengali', 'portuguese', 'russian', 'japanese', 'german', 'french']
 PATTERNS = {
-    "USERNAME": re.compile(r"(email|e-mail|phone|user|username|account|id|identifier)", re.IGNORECASE),
+    "FORGOT_PASSWORD": re.compile(r"(forgot (?:password|account)|reset password|can't access|retrieve)", re.IGNORECASE),
+    "ADVERTISEMENTS": re.compile(r"(ad|advertisement|promo|sponsored|ads by|learn more|check out)", re.IGNORECASE),
+    "NAVIGATION_LINK": re.compile(r"(home|back|next|previous|menu|navigate|main page|show more|view)", re.IGNORECASE),
+    "HELP_LINK": re.compile(r"(help|support|faq|contact us|need assistance)", re.IGNORECASE),
+    "LANGUAGE_SWITCH": re.compile(fr"({'|'.join(LANGUAGES)})", re.IGNORECASE),
+    "SIGN_UP": re.compile(r"(sign up|register|create account|join now|get started)", re.IGNORECASE),
+    "REMEMBER_ME": re.compile(r"(remember me|stay signed in|keep me logged in)", re.IGNORECASE),
+    "PRIVACY_POLICY": re.compile(r"(privacy policy|data protection|terms of privacy|gdpr)", re.IGNORECASE),
+    "TERMS_OF_SERVICE": re.compile(r"(terms of service|terms and conditions|user agreement)", re.IGNORECASE),
+    "BANNER": re.compile(r"(banner|announcement|alert|header|promotion)", re.IGNORECASE),
+    "COOKIE_POLICY": re.compile(r"(cookie policy|cookies|tracking policy|data usage)", re.IGNORECASE),
+    "IMPRINT": re.compile(r"(imprint|legal notice|about us|company details|contact info)", re.IGNORECASE),
+    # important
+    "USERNAME": re.compile(r"(email|e-mail|phone|user|username|id|identifier)", re.IGNORECASE),
     "PHONE_NUMBER": re.compile(r"(phone|mobile|contact number|cell)", re.IGNORECASE),
     "PASSWORD": re.compile(r"(pass|password|pwd|secret|key|pin|phrase)", re.IGNORECASE),
     "LOGIN_BUTTON": re.compile(r"(login|log in|sign in|access|proceed|continue|submit|sign-on)", re.IGNORECASE),
-    "FORGOT_PASSWORD": re.compile(r"(forgot password|reset password|can't access|retrieve)", re.IGNORECASE),
     "CAPTCHA": re.compile(r"(captcha|i'm not a robot|security check|verify)", re.IGNORECASE),
-    "TWO_FACTOR_AUTH": re.compile(r"(2fa|authenticator|verification code|token|one-time code)", re.IGNORECASE),
     "SOCIAL_LOGIN_BUTTONS": re.compile(r"(login with|sign in with|connect with|continue with)", re.IGNORECASE),
-    "SIGN_UP": re.compile(r"(sign up|register|create account|join now|get started)", re.IGNORECASE),
-    "REMEMBER_ME": re.compile(r"(remember me|stay signed in|keep me logged in)", re.IGNORECASE),
-    "HELP_LINK": re.compile(r"(help|support|faq|contact us|need assistance)", re.IGNORECASE),
-    "PRIVACY_POLICY": re.compile(r"(privacy policy|data protection|terms of privacy|gdpr)", re.IGNORECASE),
-    "TERMS_OF_SERVICE": re.compile(r"(terms of service|terms and conditions|user agreement)", re.IGNORECASE),
-    "NAVIGATION_LINK": re.compile(r"(home|back|next|previous|menu|navigate|main page)", re.IGNORECASE),
-    "BANNER": re.compile(r"(banner|announcement|alert|header|promotion)", re.IGNORECASE),
-    "ADVERTISEMENTS": re.compile(r"(ad|advertisement|promo|sponsored|ads by)", re.IGNORECASE),
-    "COOKIE_POLICY": re.compile(r"(cookie policy|cookies|tracking policy|data usage)", re.IGNORECASE),
-    "IMPRINT": re.compile(r"(imprint|legal notice|about us|company details|contact info)", re.IGNORECASE),
+    "TWO_FACTOR_AUTH": re.compile(r"(2fa|authenticator|verification code|token|one-time code)", re.IGNORECASE),
+
+
 }
 
 

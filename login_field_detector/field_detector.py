@@ -214,11 +214,11 @@ class LoginFieldDetector:
         class_names = [self.id2label[i] for i in range(len(self.labels))]
         class_counts = [counts.get(i, 0) for i in range(len(self.labels))]
 
-        plt.figure(figsize=(12, 6))
+        plt.figure(figsize=(14, 10))
         plt.bar(class_names, class_counts, color="skyblue")
         plt.xlabel("Class Labels")
-        plt.ylabel("Frequency")
         plt.title("Class Distribution")
+        plt.ylabel("Frequency")
         plt.xticks(rotation=45, ha="right")
         plt.tight_layout()
         plt.show()
@@ -250,7 +250,7 @@ class LoginFieldDetector:
             true = labels.squeeze().tolist()
 
             predictions.append(preds)
-            true_labels.extend(true)
+            true_labels.append(true)
 
         # Define all possible labels (use the full id2label mapping)
         all_labels = sorted(self.id2label.keys())  # Ensure all labels are included
