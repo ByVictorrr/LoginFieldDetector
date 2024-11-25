@@ -6,21 +6,6 @@ from login_field_detector import LoginFieldDetector, DataLoader, fetch_html
 
 
 @pytest.fixture(scope="session")
-async def load_html():
-    """Asynchronous fixture to load HTML using DataLoader."""
-    data_loader = DataLoader()
-    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
-
-    # Load URLs from the JSON file
-    with open(file_path, "r") as file:
-        training_urls = json.load(file)[:20]
-
-    # Fetch all HTML asynchronously
-    html_data = await data_loader.fetch_all(training_urls)
-    return html_data
-
-
-@pytest.fixture(scope="session")
 def detector():
     """Synchronous fixture to initialize and train LoginFieldDetector."""
 
@@ -30,7 +15,7 @@ def detector():
         file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
 
         with open(file_path, "r") as file:
-            training_urls = json.load(file)
+            training_urls = json.load(file)[:20]
 
         html_data = await data_loader.fetch_all(training_urls)
 

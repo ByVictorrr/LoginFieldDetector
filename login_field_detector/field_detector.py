@@ -12,7 +12,7 @@ from transformers import (
     TrainingArguments,
     BertForTokenClassification,
     BertTokenizerFast,
-    EarlyStoppingCallback,
+    EarlyStoppingCallback, BertForSequenceClassification,
 )
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.utils.class_weight import compute_class_weight
@@ -51,59 +51,53 @@ class WeightedTrainer(Trainer):
 class LoginFieldDetector:
     """Model for login field detection using BERT."""
 
-    def __init__(self, model_dir="fine_tuned_model", labels=None, device=None):
-        self.labels = labels or LABELS
-        self.label2id = {label: idx for idx, label in enumerate(self.labels)}
-        self.id2label = {idx: label for label, idx in self.label2id.items()}
-        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(self, model_dir=f"fine_tuned_model", labels=LABELS, device=None):
+        if not labels:
+            raise ValueError("Labels must be provided to initialize the model.")
 
-        self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
-        self.model = BertForTokenClassification.from_pretrained(
-            "bert-base-uncased",
-            num_labels=len(self.labels),
-            id2label=self.id2label,
-            label2id=self.label2id,
-        )
+        self.labels = labels
+        self.label2id = {label: i for i, label in enumerate(self.labels)}
+        self.id2label = {i: label for label, i in self.label2id.items()}
+
+        self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        print(f"Using device: {self.device}")
+
+        try:
+            self.tokenizer = BertTokenizerFast.from_pretrained(model_dir)
+            self.model = BertForSequenceClassification.from_pretrained(
+                model_dir,
+                num_labels=len(self.labels),
+                id2label=self.id2label,
+                label2id=self.label2id,
+            )
+        except Exception as e:
+            print(f"Warning: {model_dir} not found or invalid. Using 'bert-base-uncased' as default. Error: {e}")
+            self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
+            self.model = BertForSequenceClassification.from_pretrained(
+                "bert-base-uncased",
+                num_labels=len(self.labels),
+                id2label=self.id2label,
+                label2id=self.label2id,
+            )
+
+        self.model = self.model.to(self.device)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
 
     def create_dataset(self, inputs, labels):
         """Align 1D labels with tokenized inputs."""
         encodings = self.tokenizer(
             inputs,
-            padding=True,
             truncation=True,
+            padding=True,
             max_length=512,
             return_tensors="pt",
-            return_offsets_mapping=True,  # Needed for alignment
         )
-
-        aligned_labels = []
-        label_idx = 0  # Pointer to track position in the 1D labels array
-
-        for batch_index in range(len(inputs)):  # Process each input sequence
-            word_ids = encodings.word_ids(batch_index=batch_index)
-            aligned_label = []
-
-            for word_id in word_ids:
-                if word_id is None:
-                    # Special token or padding
-                    aligned_label.append(-100)
-                else:
-                    # Assign label if within range, otherwise use -100
-                    if label_idx < len(labels):
-                        aligned_label.append(labels[label_idx])
-                        label_idx += 1
-                    else:
-                        aligned_label.append(-100)  # Safety padding
-
-            aligned_labels.append(aligned_label)
-
-        # Ensure the total labels processed match input size
-        assert label_idx <= len(labels), f"Excess labels detected: {label_idx} > {len(labels)}"
-
-        # Convert to tensor and attach to encodings
-        encodings["labels"] = torch.tensor(aligned_labels, dtype=torch.long)
-        return Dataset.from_dict(encodings)
+        data = {
+            "input_ids": encodings["input_ids"],
+            "attention_mask": encodings["attention_mask"],
+            "labels": torch.tensor(labels, dtype=torch.long),
+        }
+        return Dataset.from_dict(data)
 
     def process_urls(self, html_list, o_label_ratio=0.001):
         """Preprocess and balance data."""
@@ -177,21 +171,30 @@ class LoginFieldDetector:
     def predict(self, html_text):
         """Make predictions on new HTML content."""
         tokens, _, xpaths = self.feature_extractor.get_features(html_text)
+        # Tokenize the features
         encodings = self.tokenizer(
             tokens,
-            padding=True,
             truncation=True,
+            padding=True,
+            max_length=512,  # Model's maximum input length
             return_tensors="pt",
-            is_split_into_words=True,
         )
+
+        # Move inputs to the model's device
         inputs = {key: value.to(self.device) for key, value in encodings.items()}
+
+        # Perform inference
         with torch.no_grad():
             outputs = self.model(**inputs)
         logits = outputs.logits
-        preds = torch.argmax(logits, dim=-1).tolist()
+
+        # Convert logits to predicted labels
+        predicted_ids = torch.argmax(logits, dim=-1).tolist()
+
+        # Generate predictions with corresponding xpaths
         return [
             {"token": token, "predicted_label": self.id2label[pred], "xpath": xpath}
-            for token, pred, xpath in zip(tokens, preds, xpaths)
+            for token, pred, xpath in zip(tokens, predicted_ids, xpaths)
         ]
 
 
