@@ -1,31 +1,20 @@
 import os
 import json
 import pytest
-import asyncio
-from login_field_detector import LoginFieldDetector, DataLoader
+from login_field_detector import LoginFieldDetector
 
 
 @pytest.fixture(scope="session")
 def detector():
     """Synchronous fixture to initialize and train LoginFieldDetector."""
+    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
+    with open(file_path, "r") as file:
+        training_urls = json.load(file)
 
-    async def async_setup():
-        # Resolve `load_html` asynchronously
-        data_loader = DataLoader()
-        file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
-
-        with open(file_path, "r") as file:
-            training_urls = json.load(file)
-
-        html_data = await data_loader.fetch_all(training_urls)
-
-        # Initialize and train the detector
-        detector = LoginFieldDetector()
-        detector.train([html for html, _ in html_data])  # Pass only HTML data
-        return detector
-
-    # Run the async setup synchronously
-    return asyncio.run(async_setup())
+    # Initialize and train the detector
+    detector = LoginFieldDetector()
+    detector.train(urls=training_urls)  # Pass only HTML data
+    return detector
 
 
 @pytest.mark.parametrize("url", [
@@ -38,4 +27,3 @@ def test_media_urls(detector, url):
     if not detector.predict(url=url):
         pytest.fail(f"LoginFieldDetector failed with media URLs")
     print("Pytest succeeded.")
-

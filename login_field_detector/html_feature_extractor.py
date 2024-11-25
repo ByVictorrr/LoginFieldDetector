@@ -2,8 +2,6 @@ import os
 import re
 import json
 from bs4 import BeautifulSoup
-import pycountry
-from .data_loader import fetch_html
 
 
 def get_xpath(element):
@@ -121,16 +119,9 @@ class HTMLFeatureExtractor:
                 oauth_providers = json.load(flp)
         self.oauth_providers = oauth_providers
 
-    def get_features(self, url=None, file_path=None):
+    def get_features(self, html_text):
         """Extract tokens, labels, xpaths, and bounding boxes from an HTML file."""
         # Read and parse the HTML
-        if not url and not file_path:
-            raise ValueError(f"{file_path=} and {url=} can not be None. One has to be used.")
-        if url:
-            file_path = fetch_html(url)
-
-        with open(file_path, "r", encoding="utf-8") as html_fp:
-            html_text = html_fp.read()
         soup = BeautifulSoup(html_text, "lxml")
 
         tokens, labels, xpaths = [], [], []

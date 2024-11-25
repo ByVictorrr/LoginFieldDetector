@@ -13,6 +13,7 @@ from transformers import (
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
+from .data_loader import DataLoader
 
 
 # Utility Functions
@@ -78,6 +79,7 @@ class LoginFieldDetector:
 
         self.model = self.model.to(self.device)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
+        self.url_loader = DataLoader()
 
     def create_dataset(self, inputs, labels):
         """Align 1D labels with tokenized inputs."""
@@ -95,20 +97,20 @@ class LoginFieldDetector:
         }
         return Dataset.from_dict(data)
 
-    def process_urls(self, file_list, o_label_ratio=0.001):
+    def process_urls(self, urls, o_label_ratio=0.001):
         """Preprocess, balance data, and include bounding boxes."""
         inputs, labels = [], []
-        for file_path in file_list:
+        for url, text in self.url_loader.fetch_all(urls).items():
             try:
                 # Extract features including bounding boxes
-                tokens, token_labels, _ = self.feature_extractor.get_features(file_path=file_path)
+                tokens, token_labels, _ = self.feature_extractor.get_features(text)
                 assert len(tokens) == len(token_labels)
 
                 # Extend the inputs, labels, and bboxes
                 inputs.extend(tokens)
                 labels.extend(token_labels)
             except Exception as e:
-                print(f"Error processing HTML: {e}")
+                print(f"Error processing {url}: {e}")
 
         # Balance and filter inputs, labels, and bounding boxes
         return self._filter_unlabeled_labels(inputs, labels, o_label_ratio)
@@ -133,9 +135,9 @@ class LoginFieldDetector:
 
         return filtered_inputs, filtered_labels
 
-    def train(self, file_list, output_dir="fine_tuned_model", epochs=10, batch_size=4):
+    def train(self, urls, output_dir="fine_tuned_model", epochs=10, batch_size=4):
         """Train the model."""
-        inputs, labels = self.process_urls(file_list)
+        inputs, labels = self.process_urls(urls)
         dataset = self.create_dataset(inputs, labels)
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
 
@@ -179,9 +181,10 @@ class LoginFieldDetector:
             full_weights[cls] = weight
         return torch.tensor(full_weights).to(self.device)
 
-    def predict(self, url=None, file_path=None):
+    def predict(self, url):
         """Make predictions on new HTML content."""
-        tokens, _, xpaths = self.feature_extractor.get_features(url=url, file_path=file_path)
+        html_content = self.url_loader.fetch_html(url)
+        tokens, _, xpaths = self.feature_extractor.get_features(html_content)
         # Tokenize the features
         encodings = self.tokenizer(
             tokens,
@@ -213,7 +216,6 @@ class LoginFieldDetector:
         counts = Counter(labels)
         class_names = [self.id2label[i] for i in range(len(self.labels))]
         class_counts = [counts.get(i, 0) for i in range(len(self.labels))]
-
         plt.figure(figsize=(14, 10))
         plt.bar(class_names, class_counts, color="skyblue")
         plt.xlabel("Class Labels")

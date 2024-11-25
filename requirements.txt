@@ -6,7 +6,9 @@ accelerate
 lxml
 lxml_html_clean
 scikit-learn
-requests-html
 matplotlib
-pycountry
+cloudscraper
+fake-useragent
+tenacity
+redis
 pytest

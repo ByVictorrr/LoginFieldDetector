@@ -1,98 +1,77 @@
-import os
-import time
+from concurrent.futures import ThreadPoolExecutor, as_completed
+import cloudscraper
+import requests
+from fake_useragent import UserAgent
+import redis
 import hashlib
-import asyncio
-from requests_html import AsyncHTMLSession, HTMLSession
+from tenacity import retry, wait_exponential, stop_after_attempt
 
 
-class DatasetCache:
-    CACHE_DIR = "html_cache"
-    TTL_SECONDS = 24 * 3600  # Cache time-to-live: 24 hours
+class RedisDatasetCache:
+    def __init__(self, redis_host="localhost", redis_port=6379, redis_db=0, ttl_seconds=24 * 3600):
+        self.redis = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
+        self.ttl_seconds = ttl_seconds
 
-    @classmethod
-    def get_cache_file(cls, url):
-        """Generate a unique cache file name based on the URL."""
-        if not os.path.exists(cls.CACHE_DIR):
-            os.makedirs(cls.CACHE_DIR)
+    def get(self, url):
+        cache_key = self._generate_cache_key(url)
+        return self.redis.get(cache_key)
 
-        hashed_url = hashlib.md5(url.encode()).hexdigest()
-        return os.path.join(cls.CACHE_DIR, f"{hashed_url}.html")
+    def set(self, url, content):
+        cache_key = self._generate_cache_key(url)
+        self.redis.setex(cache_key, self.ttl_seconds, content)
 
-    @classmethod
-    def is_cache_valid(cls, cache_file):
-        """Check if the cache file exists and is within the TTL."""
-        if not os.path.exists(cls.CACHE_DIR):
-            os.makedirs(cls.CACHE_DIR)
-        if not os.path.exists(cache_file):
-            return False
-        file_age = time.time() - os.path.getmtime(cache_file)
-        return file_age < cls.TTL_SECONDS
+    def _generate_cache_key(self, url):
+        return hashlib.md5(url.encode()).hexdigest()
 
 
 class DataLoader:
-    """A class to handle data fetching and caching."""
+    def __init__(self, cache=None, max_workers=10):
+        self.cache = cache or RedisDatasetCache()
+        self.max_workers = max_workers
+        self.user_agent = UserAgent()
 
-    def __init__(self, session=None):
-        self.session = session or AsyncHTMLSession()
-        self.session.cookies.set("CookieConsent", "true")
+    def create_scraper(self):
+        return cloudscraper.create_scraper(
+            browser={"custom": self.user_agent.random},
+            headers={
+                "Referer": "https://www.google.com",
+                "Accept-Language": "en-US,en;q=0.9",
+                "Accept-Encoding": "gzip, deflate, br",
+            },
+        )
 
-    async def fetch_html(self, url):
-        """Fetch HTML content asynchronously with caching."""
-        cache_file = DatasetCache.get_cache_file(url)
-        # Check cache
-        if DatasetCache.is_cache_valid(cache_file):
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(5))
+    def fetch_html(self, url):
+        cached_content = self.cache.get(url)
+        if cached_content:
             print(f"Using cached HTML for {url}")
-            return cache_file
+            return cached_content
 
-        # Fetch HTML asynchronously
         print(f"Fetching HTML for {url}")
+        scraper = self.create_scraper()
         try:
-            response = await self.session.get(url, timeout=10, allow_redirects=True)
-            await response.html.arender(timeout=20)  # Render JavaScript if needed
-            html = response.html.html
-
-            # Save to cache
-            with open(cache_file, "w", encoding="utf-8") as f:
-                f.write(html)
-
-            return cache_file
+            response = scraper.get(url, timeout=20, allow_redirects=True)
+            response.raise_for_status()
+            html = response.text
+            self.cache.set(url, html)
+            return html
+        except requests.exceptions.SSLError as e:
+            print(f"SSL error for {url}: {e}")
+        except requests.exceptions.TooManyRedirects as e:
+            print(f"Too many redirects for {url}: {e}")
         except Exception as e:
             print(f"Error fetching {url}: {e}")
-            return None
+            raise
 
-    async def fetch_all(self, urls):
-        """Fetch HTML content for all URLs concurrently."""
-
-        async def fetch_single(url):
-            return await self.fetch_html(url)
-
-        tasks = [fetch_single(url) for url in urls]
-        results = await asyncio.gather(*tasks)
-
-        # Filter out None results
-        return [(file_path, url) for file_path, url in zip(results, urls) if file_path is not None]
-
-
-def fetch_html(url):
-    """Fetch HTML content asynchronously with caching."""
-    cache_file = DatasetCache.get_cache_file(url)
-    # Check cache
-    if DatasetCache.is_cache_valid(cache_file):
-        print(f"Using cached HTML for {url}")
-        return cache_file
-
-    # Fetch HTML asynchronously
-    print(f"Fetching HTML for {url}")
-    try:
-        with HTMLSession() as session:
-            response = session.get(url, timeout=10, allow_redirects=True)
-        response.html.render(timeout=20)  # Render JavaScript if needed
-        html = response.html.html
-        # Save to cache
-        with open(cache_file, "w", encoding="utf-8") as f:
-            f.write(html)
-
-        return cache_file
-    except Exception as e:
-        print(f"Error fetching {url}: {e}")
-        return None
+    def fetch_all(self, urls):
+        results = {}
+        with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
+            future_to_url = {executor.submit(self.fetch_html, url): url for url in urls}
+            for future in as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    if html := future.result():
+                        results[url] = html
+                except Exception as e:
+                    print(f"Error processing {url}: {e}")
+        return results
