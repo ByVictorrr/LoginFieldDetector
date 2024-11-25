@@ -2,6 +2,7 @@ import os
 import time
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
+from tqdm import tqdm
 from playwright.sync_api import sync_playwright
 
 
@@ -65,7 +66,7 @@ class DataLoader:
             return None
 
     def fetch_all(self, urls, max_threads=5):
-        """Fetch HTML content for all URLs using threading."""
+        """Fetch HTML content for all URLs using threading and tqdm for progress."""
         results = []
 
         def task(url):
@@ -73,12 +74,20 @@ class DataLoader:
 
         # Use ThreadPoolExecutor for parallel fetching
         with ThreadPoolExecutor(max_threads) as executor:
-            futures = [executor.submit(task, url) for url in urls]
+            futures = {executor.submit(task, url): url for url in urls}
 
-            for future in as_completed(futures):
-                url, cache_file = future.result()
-                if cache_file:
-                    results.append((cache_file, url))
+            # Use tqdm for progress tracking
+            with tqdm(total=len(futures), desc="Fetching URLs", unit="url") as progress:
+                for future in as_completed(futures):
+                    url = futures[future]  # Get the URL associated with the future
+                    try:
+                        url, cache_file = future.result()
+                        if cache_file:
+                            results.append((cache_file, url))
+                    except Exception as e:
+                        print(f"Error processing {url}: {e}")
+                    finally:
+                        progress.update(1)  # Update progress bar after each URL
 
         return results
 
