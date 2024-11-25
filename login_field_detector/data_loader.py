@@ -90,7 +90,7 @@ class DataLoader:
 
 # Example Usage
 if __name__ == "__main__":
-    urls = [
+    url_list = [
         "https://example.com",
         "https://another-example.com",
         "https://google.com"
@@ -98,8 +98,8 @@ if __name__ == "__main__":
 
     loader = DataLoader()
     try:
-        results = loader.fetch_all(urls, max_threads=5)
-        for file_path, url in results:
-            print(f"Cached HTML for {url} at {file_path}")
+        _results = loader.fetch_all(url_list, max_threads=5)
+        for file_p, url_text in _results:
+            print(f"Cached HTML for {url_text} at {file_p}")
     finally:
         loader.close()

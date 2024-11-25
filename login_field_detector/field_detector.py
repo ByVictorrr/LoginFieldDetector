@@ -9,8 +9,8 @@ from torch.nn import CrossEntropyLoss
 from transformers import (
     Trainer,
     TrainingArguments,
-    BertTokenizerFast,
-    BertForSequenceClassification,
+    LayoutLMTokenizerFast,
+    LayoutLMForSequenceClassification,
 )
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
@@ -61,18 +61,19 @@ class LoginFieldDetector:
         print(f"Using device: {self.device}")
 
         try:
-            self.tokenizer = BertTokenizerFast.from_pretrained(model_dir)
-            self.model = BertForSequenceClassification.from_pretrained(
+            self.tokenizer = LayoutLMTokenizerFast.from_pretrained(model_dir)
+            self.model = LayoutLMForSequenceClassification.from_pretrained(
                 model_dir,
                 num_labels=len(self.labels),
                 id2label=self.id2label,
                 label2id=self.label2id,
             )
         except Exception as e:
-            print(f"Warning: {model_dir} not found or invalid. Using 'bert-base-uncased' as default. Error: {e}")
-            self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
-            self.model = BertForSequenceClassification.from_pretrained(
-                "bert-base-uncased",
+            print(f"Warning: {model_dir} not found or invalid. Using 'microsoft/layoutlmv2-base-uncased' as default. "
+                  f"Error: {e}")
+            self.tokenizer = LayoutLMTokenizerFast.from_pretrained("microsoft/layoutlmv2-base-uncased")
+            self.model = LayoutLMForSequenceClassification.from_pretrained(
+                "microsoft/layoutlmv2-base-uncased",
                 num_labels=len(self.labels),
                 id2label=self.id2label,
                 label2id=self.label2id,
@@ -81,10 +82,11 @@ class LoginFieldDetector:
         self.model = self.model.to(self.device)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
 
-    def create_dataset(self, inputs, labels):
+    def create_dataset(self, inputs, labels, bboxes):
         """Align 1D labels with tokenized inputs."""
         encodings = self.tokenizer(
             inputs,
+            bboxes=bboxes,
             truncation=True,
             padding=True,
             max_length=512,
@@ -98,37 +100,52 @@ class LoginFieldDetector:
         return Dataset.from_dict(data)
 
     def process_urls(self, file_list, o_label_ratio=0.001):
-        """Preprocess and balance data."""
-        inputs, labels = [], []
+        """Preprocess, balance data, and include bounding boxes."""
+        inputs, labels, bboxes = [], [], []
         for file_path in file_list:
             try:
-                tokens, token_labels, _ = self.feature_extractor.get_features(file_path)
-                assert len(tokens) == len(token_labels)
+                # Extract features including bounding boxes
+                tokens, token_labels, _, token_bboxes = self.feature_extractor.get_features(file_path)
+                assert len(tokens) == len(token_labels) == len(token_bboxes)
+
+                # Extend the inputs, labels, and bboxes
                 inputs.extend(tokens)
                 labels.extend(token_labels)
+                bboxes.extend(token_bboxes)
             except Exception as e:
                 print(f"Error processing HTML: {e}")
-        return self._filter_unlabeled_labels(inputs, labels, o_label_ratio)
 
-    def _filter_unlabeled_labels(self, inputs, labels, ratio):
-        """Reduce the number of 'UNLABELED' labels for balance."""
-        o_inputs, o_labels, non_o_inputs, non_o_labels = [], [], [], []
-        for inp, lbl in zip(inputs, labels):
+        # Balance and filter inputs, labels, and bounding boxes
+        return self._filter_unlabeled_labels(inputs, labels, bboxes, o_label_ratio)
+
+    def _filter_unlabeled_labels(self, inputs, labels, bboxes, ratio):
+        """Reduce the number of 'UNLABELED' labels for balance, including bboxes."""
+        o_inputs, o_labels, o_bboxes = [], [], []
+        non_o_inputs, non_o_labels, non_o_bboxes = [], [], []
+
+        # Separate 'UNLABELED' and labeled data
+        for inp, lbl, bbox in zip(inputs, labels, bboxes):
             if lbl == self.label2id["UNLABELED"]:
                 o_inputs.append(inp)
                 o_labels.append(lbl)
+                o_bboxes.append(bbox)
             else:
                 non_o_inputs.append(inp)
                 non_o_labels.append(lbl)
+                non_o_bboxes.append(bbox)
+
+        # Limit the 'UNLABELED' data based on the ratio
         max_o_count = int(ratio * len(labels))
         filtered_inputs = o_inputs[:max_o_count] + non_o_inputs
         filtered_labels = o_labels[:max_o_count] + non_o_labels
-        return filtered_inputs, filtered_labels
+        filtered_bboxes = o_bboxes[:max_o_count] + non_o_bboxes
+
+        return filtered_inputs, filtered_labels, filtered_bboxes
 
     def train(self, file_list, output_dir="fine_tuned_model", epochs=10, batch_size=4):
         """Train the model."""
-        inputs, labels = self.process_urls(file_list)
-        dataset = self.create_dataset(inputs, labels)
+        inputs, labels, bboxes = self.process_urls(file_list)
+        dataset = self.create_dataset(inputs, labels, bboxes)
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
 
         class_weights = self._compute_class_weights(labels)
@@ -171,12 +188,13 @@ class LoginFieldDetector:
             full_weights[cls] = weight
         return torch.tensor(full_weights).to(self.device)
 
-    def predict(self, file_path):
+    def predict(self, url=None, file_path=None):
         """Make predictions on new HTML content."""
-        tokens, _, xpaths = self.feature_extractor.get_features(file_path)
+        tokens, _, xpaths, bboxes = self.feature_extractor.get_features(url=url, file_path=file_path)
         # Tokenize the features
         encodings = self.tokenizer(
             tokens,
+            bboxes=bboxes,
             truncation=True,
             padding=True,
             max_length=512,  # Model's maximum input length

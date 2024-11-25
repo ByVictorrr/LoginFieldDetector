@@ -5,6 +5,8 @@ import logging
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
+from login_field_detector import DataLoader
+
 
 def get_xpath(element):
     """Generate XPath for a given BeautifulSoup element."""
@@ -109,9 +111,15 @@ class HTMLFeatureExtractor:
                 oauth_providers = json.load(flp)
         self.oauth_providers = oauth_providers
 
-    def get_features(self, file_path):
+    def get_features(self, url=None, file_path=None):
         """Extract tokens, labels, xpaths, and bounding boxes from an HTML file."""
         # Read and parse the HTML
+        if not url and not file_path:
+            raise ValueError(f"{file_path=} and {url=} can not be None. One has to be used.")
+        if url:
+            with DataLoader() as dataloader:
+                file_path = dataloader.fetch_html(url)
+
         with open(file_path, "r", encoding="utf-8") as html_fp:
             html_text = html_fp.read()
         soup = BeautifulSoup(html_text, "lxml")

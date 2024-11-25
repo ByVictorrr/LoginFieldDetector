@@ -15,6 +15,7 @@ def detector():
         training_urls = json.load(file)
 
     url_data = data_loader.fetch_all(training_urls)
+    data_loader.close()
     # Initialize and train the detector
     detector = LoginFieldDetector()
     detector.train([file_path for file_path, _ in url_data])  # Pass only HTML data
