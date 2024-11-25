@@ -15,7 +15,7 @@ def detector():
         file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
 
         with open(file_path, "r") as file:
-            training_urls = json.load(file)[:20]
+            training_urls = json.load(file)
 
         html_data = await data_loader.fetch_all(training_urls)
 
