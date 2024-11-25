@@ -1,9 +1,11 @@
 import os
 import time
 import hashlib
-from concurrent.futures import ThreadPoolExecutor, as_completed
-from tqdm import tqdm
+import asyncio
+
 from playwright.sync_api import sync_playwright
+from playwright.async_api import async_playwright
+from tqdm import tqdm
 
 
 class DatasetCache:
@@ -22,24 +24,28 @@ class DatasetCache:
     @classmethod
     def is_cache_valid(cls, cache_file):
         """Check if the cache file exists and is within the TTL."""
-        if not os.path.exists(cls.CACHE_DIR):
-            os.makedirs(cls.CACHE_DIR)
         if not os.path.exists(cache_file):
             return False
         file_age = time.time() - os.path.getmtime(cache_file)
         return file_age < cls.TTL_SECONDS
 
 
-class DataLoader:
-    """A class to handle data fetching and caching with Playwright."""
+class AsyncDataLoader:
+    """A class to handle data fetching and caching with Playwright Async API."""
 
     def __init__(self):
-        self.playwright = sync_playwright().start()
-        self.browser = self.playwright.chromium.launch(headless=True)  # Set headless=False for debugging
+        self.browser = None
+        self.playwright = None
 
-    def fetch_html(self, url):
+    async def start(self):
+        """Start Playwright and initialize the browser."""
+        self.playwright = await async_playwright().start()
+        self.browser = await self.playwright.chromium.launch(headless=True)
+
+    async def fetch_html(self, url):
         """Fetch HTML content with caching."""
         cache_file = DatasetCache.get_cache_file(url)
+        await self.start()
 
         # Check cache
         if DatasetCache.is_cache_valid(cache_file):
@@ -49,12 +55,12 @@ class DataLoader:
         # Fetch HTML using Playwright
         print(f"Fetching HTML for {url}")
         try:
-            context = self.browser.new_context()
-            page = context.new_page()
-            page.goto(url, timeout=30000)  # Timeout in milliseconds
-            page.wait_for_load_state("networkidle")  # Wait for the page to fully load
-            html = page.content()  # Get the HTML content of the page
-            page.close()
+            context = await self.browser.new_context()
+            page = await context.new_page()
+            await page.goto(url, timeout=30000)  # Timeout in milliseconds
+            await page.wait_for_load_state("networkidle")  # Wait for the page to fully load
+            html = await page.content()  # Get the HTML content of the page
+            await page.close()
 
             # Save to cache
             with open(cache_file, "w", encoding="utf-8") as f:
@@ -65,50 +71,80 @@ class DataLoader:
             print(f"Error fetching {url}: {e}")
             return None
 
-    def fetch_all(self, urls, max_threads=5):
-        """Fetch HTML content for all URLs using threading and tqdm for progress."""
+    async def fetch_all(self, urls, max_concurrent=5):
+        """Fetch HTML content for all URLs using asyncio.gather for concurrency."""
+        semaphore = asyncio.Semaphore(max_concurrent)
+
+        async def fetch_with_semaphore(url):
+            async with semaphore:
+                return await self.fetch_html(url), url
+
+        # Use asyncio.gather to run tasks concurrently
+        tasks = [fetch_with_semaphore(url) for url in urls]
         results = []
-
-        def task(url):
-            return url, self.fetch_html(url)
-
-        # Use ThreadPoolExecutor for parallel fetching
-        with ThreadPoolExecutor(max_threads) as executor:
-            futures = {executor.submit(task, url): url for url in urls}
-
-            # Use tqdm for progress tracking
-            with tqdm(total=len(futures), desc="Fetching URLs", unit="url") as progress:
-                for future in as_completed(futures):
-                    url = futures[future]  # Get the URL associated with the future
-                    try:
-                        url, cache_file = future.result()
-                        if cache_file:
-                            results.append((cache_file, url))
-                    except Exception as e:
-                        print(f"Error processing {url}: {e}")
-                    finally:
-                        progress.update(1)  # Update progress bar after each URL
-
+        for coro in tqdm(asyncio.as_completed(tasks), total=len(urls), desc="Fetching URLs", unit="url"):
+            try:
+                result = await coro
+                if result[1]:
+                    results.append(result)
+            except Exception as e:
+                print(f"Error processing {result[0]}: {e}")
         return results
 
-    def close(self):
+    async def close(self):
         """Clean up resources."""
-        self.browser.close()
-        self.playwright.stop()
+        if self.browser:
+            await self.browser.close()
+        if self.playwright:
+            await self.playwright.stop()
 
+def fetch_html(url):
+    """Fetch HTML content with caching."""
+    cache_file = DatasetCache.get_cache_file(url)
+
+    # Check cache
+    if DatasetCache.is_cache_valid(cache_file):
+        print(f"Using cached HTML for {url}")
+        return cache_file
+
+    # Fetch HTML using Playwright
+    print(f"Fetching HTML for {url}")
+    try:
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            context = browser.new_context()
+            page = context.new_page()
+            page.goto(url, timeout=30000)  # Timeout in milliseconds
+            page.wait_for_load_state("networkidle")  # Wait for the page to fully load
+            html = page.content()  # Get the HTML content of the page
+            page.close()
+            browser.close()
+
+        # Save to cache
+        with open(cache_file, "w", encoding="utf-8") as f:
+            f.write(html)
+
+        return cache_file
+    except Exception as e:
+        print(f"Error fetching {url}: {e}")
+        return None
 
 # Example Usage
-if __name__ == "__main__":
+async def main():
     url_list = [
         "https://example.com",
         "https://another-example.com",
-        "https://google.com"
+        "https://google.com",
     ]
 
-    loader = DataLoader()
+    loader = AsyncDataLoader()
     try:
-        _results = loader.fetch_all(url_list, max_threads=5)
-        for file_p, url_text in _results:
+        await loader.start()
+        results = await loader.fetch_all(url_list, max_concurrent=5)
+        for file_p, url_text in results:
             print(f"Cached HTML for {url_text} at {file_p}")
     finally:
-        loader.close()
+        await loader.close()
+
+if __name__ == "__main__":
+    asyncio.run(main())

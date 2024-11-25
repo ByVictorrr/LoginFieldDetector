@@ -105,7 +105,7 @@ class LoginFieldDetector:
         for file_path in file_list:
             try:
                 # Extract features including bounding boxes
-                tokens, token_labels, _, token_bboxes = self.feature_extractor.get_features(file_path)
+                tokens, token_labels, _, token_bboxes = self.feature_extractor.get_features(file_path=file_path)
                 assert len(tokens) == len(token_labels) == len(token_bboxes)
 
                 # Extend the inputs, labels, and bboxes

@@ -5,13 +5,13 @@ import logging
 from bs4 import BeautifulSoup
 from playwright.sync_api import sync_playwright
 
-from login_field_detector import DataLoader
+from .data_loader import fetch_html
 
 
 def get_xpath(element):
-    """Generate XPath for a given BeautifulSoup element."""
+    """Generate a valid XPath for a given BeautifulSoup element."""
     parts = []
-    while element:
+    while element and element.name != '[document]':  # Stop at the root document
         siblings = element.find_previous_siblings(element.name)
         position = len(siblings) + 1  # XPath is 1-indexed
         parts.insert(0, f"{element.name}[{position}]")
@@ -43,25 +43,30 @@ LABELS = [
     "IMPRINT"
 ]
 
+LANGUAGES = ['english', 'chinese', 'spanish', 'hindi', 'arabic', 'bengali', 'portuguese', 'russian', 'japanese',
+             'german', 'french']
 PATTERNS = {
-    "USERNAME": re.compile(r"(email|e-mail|phone|user|username|account|id|identifier)", re.IGNORECASE),
+    "FORGOT_PASSWORD": re.compile(r"(forgot (?:password|account)|reset password|can't access|retrieve)", re.IGNORECASE),
+    "ADVERTISEMENTS": re.compile(r"(ad|advertisement|promo|sponsored|ads by|learn more|check out)", re.IGNORECASE),
+    "NAVIGATION_LINK": re.compile(r"(home|back|next|previous|menu|navigate|main page|show more|view)", re.IGNORECASE),
+    "HELP_LINK": re.compile(r"(help|support|faq|contact us|need assistance)", re.IGNORECASE),
+    "LANGUAGE_SWITCH": re.compile(fr"({'|'.join(LANGUAGES)})", re.IGNORECASE),
+    "SIGN_UP": re.compile(r"(sign up|register|create account|join now|get started)", re.IGNORECASE),
+    "REMEMBER_ME": re.compile(r"(remember me|stay signed in|keep me logged in)", re.IGNORECASE),
+    "PRIVACY_POLICY": re.compile(r"(privacy policy|data protection|terms of privacy|gdpr)", re.IGNORECASE),
+    "TERMS_OF_SERVICE": re.compile(r"(terms of service|terms and conditions|user agreement)", re.IGNORECASE),
+    "BANNER": re.compile(r"(banner|announcement|alert|header|promotion)", re.IGNORECASE),
+    "COOKIE_POLICY": re.compile(r"(cookie policy|cookies|tracking policy|data usage)", re.IGNORECASE),
+    "IMPRINT": re.compile(r"(imprint|legal notice|about us|company details|contact info)", re.IGNORECASE),
+    # important
+    "USERNAME": re.compile(r"(email|e-mail|phone|user|username|id|identifier)", re.IGNORECASE),
     "PHONE_NUMBER": re.compile(r"(phone|mobile|contact number|cell)", re.IGNORECASE),
     "PASSWORD": re.compile(r"(pass|password|pwd|secret|key|pin|phrase)", re.IGNORECASE),
     "LOGIN_BUTTON": re.compile(r"(login|log in|sign in|access|proceed|continue|submit|sign-on)", re.IGNORECASE),
-    "FORGOT_PASSWORD": re.compile(r"(forgot password|reset password|can't access|retrieve)", re.IGNORECASE),
     "CAPTCHA": re.compile(r"(captcha|i'm not a robot|security check|verify)", re.IGNORECASE),
-    "TWO_FACTOR_AUTH": re.compile(r"(2fa|authenticator|verification code|token|one-time code)", re.IGNORECASE),
     "SOCIAL_LOGIN_BUTTONS": re.compile(r"(login with|sign in with|connect with|continue with)", re.IGNORECASE),
-    "SIGN_UP": re.compile(r"(sign up|register|create account|join now|get started)", re.IGNORECASE),
-    "REMEMBER_ME": re.compile(r"(remember me|stay signed in|keep me logged in)", re.IGNORECASE),
-    "HELP_LINK": re.compile(r"(help|support|faq|contact us|need assistance)", re.IGNORECASE),
-    "PRIVACY_POLICY": re.compile(r"(privacy policy|data protection|terms of privacy|gdpr)", re.IGNORECASE),
-    "TERMS_OF_SERVICE": re.compile(r"(terms of service|terms and conditions|user agreement)", re.IGNORECASE),
-    "NAVIGATION_LINK": re.compile(r"(home|back|next|previous|menu|navigate|main page)", re.IGNORECASE),
-    "BANNER": re.compile(r"(banner|announcement|alert|header|promotion)", re.IGNORECASE),
-    "ADVERTISEMENTS": re.compile(r"(ad|advertisement|promo|sponsored|ads by)", re.IGNORECASE),
-    "COOKIE_POLICY": re.compile(r"(cookie policy|cookies|tracking policy|data usage)", re.IGNORECASE),
-    "IMPRINT": re.compile(r"(imprint|legal notice|about us|company details|contact info)", re.IGNORECASE),
+    "TWO_FACTOR_AUTH": re.compile(r"(2fa|authenticator|verification code|token|one-time code)", re.IGNORECASE),
+
 }
 
 
@@ -117,8 +122,7 @@ class HTMLFeatureExtractor:
         if not url and not file_path:
             raise ValueError(f"{file_path=} and {url=} can not be None. One has to be used.")
         if url:
-            with DataLoader() as dataloader:
-                file_path = dataloader.fetch_html(url)
+            file_path = fetch_html(url)
 
         with open(file_path, "r", encoding="utf-8") as html_fp:
             html_text = html_fp.read()
@@ -151,17 +155,13 @@ class HTMLFeatureExtractor:
 
                 # Generate XPath
                 xpath = get_xpath(tag)  # Replace with your XPath generation logic
-
-                # Locate the element in Playwright
-                try:
-                    element = page.locator(f"xpath={xpath}")
-                    bbox = element.bounding_box()
-                except Exception as e:
-                    print(f"Error locating element for XPath {xpath}: {e}")
-                    bbox = None
-
                 # Preprocess token
                 preprocessed_token = preprocess_field(tag)  # Replace with your preprocessing logic
+
+                # Locate the element in Playwright
+                element = page.locator(f"xpath={xpath}")
+                bbox = element.bounding_box()
+                bbox = [int(bbox["x"]), int(bbox["y"]), int(bbox["x"] + bbox["width"]), int(bbox["y"] + bbox["height"])]
 
                 # Append results
                 tokens.append(preprocessed_token)
