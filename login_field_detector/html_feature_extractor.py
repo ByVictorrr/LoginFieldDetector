@@ -2,6 +2,7 @@ import os
 import re
 import json
 from bs4 import BeautifulSoup
+from .data_loader import fetch_html
 
 
 def get_xpath(element):
@@ -97,6 +98,13 @@ def determine_label(tag):
     return LABELS[0]
 
 
+def is_item_visible(tag):
+    return not any([tag.attrs.get("type") == "hidden",
+                    "hidden" in tag.attrs.get("class", []),
+                    "display: none" in tag.attrs.get("style", ""),
+                    ])
+
+
 class HTMLFeatureExtractor:
     def __init__(self, label2id, oauth_providers=None):
         """Initialize the extractor with label mappings and optional OAuth providers."""
@@ -107,32 +115,33 @@ class HTMLFeatureExtractor:
                 oauth_providers = json.load(flp)
         self.oauth_providers = oauth_providers
 
-    def get_features(self, html):
-        """
-        Extract tokens, labels, and xpaths from HTML.
-        """
-        soup = BeautifulSoup(html, "lxml")
+    def get_features(self, url=None, file_path=None):
+        """Extract tokens, labels, xpaths, and bounding boxes from an HTML file."""
+        # Read and parse the HTML
+        if not url and not file_path:
+            raise ValueError(f"{file_path=} and {url=} can not be None. One has to be used.")
+        if url:
+            file_path = fetch_html(url)
+
+        with open(file_path, "r", encoding="utf-8") as html_fp:
+            html_text = html_fp.read()
+        soup = BeautifulSoup(html_text, "lxml")
+
         tokens, labels, xpaths = [], [], []
 
+        # Process relevant tags
         for tag in soup.find_all(["input", "button", "a", "iframe"]):
             # Skip irrelevant tags
-            if any(
-                    [
-                        tag.attrs.get("type") == "hidden",
-                        "hidden" in tag.attrs.get("class", []),
-                        "display: none" in tag.attrs.get("style", ""),
-                    ]
-            ):
+            if not is_item_visible(tag):
                 continue
 
             # Determine the label
-            label = determine_label(tag)
+            label = determine_label(tag)  # Replace with your actual logic
 
-            # Generate XPath (if needed)
-            xpath = get_xpath(tag)
-
+            # Generate XPath
+            xpath = get_xpath(tag)  # Replace with your XPath generation logic
             # Preprocess token
-            preprocessed_token = preprocess_field(tag)
+            preprocessed_token = preprocess_field(tag)  # Replace with your preprocessing logic
 
             # Append results
             tokens.append(preprocessed_token)

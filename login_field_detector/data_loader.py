@@ -42,8 +42,7 @@ class DataLoader:
         # Check cache
         if DatasetCache.is_cache_valid(cache_file):
             print(f"Using cached HTML for {url}")
-            with open(cache_file, "r", encoding="utf-8") as f:
-                return f.read()
+            return cache_file
 
         # Fetch HTML asynchronously
         print(f"Fetching HTML for {url}")
@@ -56,7 +55,7 @@ class DataLoader:
             with open(cache_file, "w", encoding="utf-8") as f:
                 f.write(html)
 
-            return html
+            return cache_file
         except Exception as e:
             print(f"Error fetching {url}: {e}")
             return None
@@ -71,7 +70,7 @@ class DataLoader:
         results = await asyncio.gather(*tasks)
 
         # Filter out None results
-        return [(html, url) for html, url in zip(results, urls) if html is not None]
+        return [(file_path, url) for file_path, url in zip(results, urls) if file_path is not None]
 
 
 def fetch_html(url):
@@ -80,8 +79,7 @@ def fetch_html(url):
     # Check cache
     if DatasetCache.is_cache_valid(cache_file):
         print(f"Using cached HTML for {url}")
-        with open(cache_file, "r", encoding="utf-8") as f:
-            return f.read()
+        return cache_file
 
     # Fetch HTML asynchronously
     print(f"Fetching HTML for {url}")
@@ -94,7 +92,7 @@ def fetch_html(url):
         with open(cache_file, "w", encoding="utf-8") as f:
             f.write(html)
 
-        return html
+        return cache_file
     except Exception as e:
         print(f"Error fetching {url}: {e}")
         return None
