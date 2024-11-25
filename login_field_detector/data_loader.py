@@ -1,8 +1,8 @@
 import os
 import time
 import hashlib
-import asyncio
-from requests_html import AsyncHTMLSession, HTMLSession
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from playwright.sync_api import sync_playwright
 
 
 class DatasetCache:
@@ -30,71 +30,76 @@ class DatasetCache:
 
 
 class DataLoader:
-    """A class to handle data fetching and caching."""
+    """A class to handle data fetching and caching with Playwright."""
 
-    def __init__(self, session=None):
-        self.session = session or AsyncHTMLSession()
-        self.session.cookies.set("CookieConsent", "true")
+    def __init__(self):
+        self.playwright = sync_playwright().start()
+        self.browser = self.playwright.chromium.launch(headless=True)  # Set headless=False for debugging
 
-    async def fetch_html(self, url):
-        """Fetch HTML content asynchronously with caching."""
+    def fetch_html(self, url):
+        """Fetch HTML content with caching."""
         cache_file = DatasetCache.get_cache_file(url)
+
         # Check cache
         if DatasetCache.is_cache_valid(cache_file):
             print(f"Using cached HTML for {url}")
-            with open(cache_file, "r", encoding="utf-8") as f:
-                return f.read()
+            return cache_file
 
-        # Fetch HTML asynchronously
+        # Fetch HTML using Playwright
         print(f"Fetching HTML for {url}")
         try:
-            response = await self.session.get(url, timeout=10, allow_redirects=True)
-            await response.html.arender(timeout=20)  # Render JavaScript if needed
-            html = response.html.html
+            context = self.browser.new_context()
+            page = context.new_page()
+            page.goto(url, timeout=30000)  # Timeout in milliseconds
+            page.wait_for_load_state("networkidle")  # Wait for the page to fully load
+            html = page.content()  # Get the HTML content of the page
+            page.close()
 
             # Save to cache
             with open(cache_file, "w", encoding="utf-8") as f:
                 f.write(html)
 
-            return html
+            return cache_file
         except Exception as e:
             print(f"Error fetching {url}: {e}")
             return None
 
-    async def fetch_all(self, urls):
-        """Fetch HTML content for all URLs concurrently."""
+    def fetch_all(self, urls, max_threads=5):
+        """Fetch HTML content for all URLs using threading."""
+        results = []
 
-        async def fetch_single(url):
-            return await self.fetch_html(url)
+        def task(url):
+            return url, self.fetch_html(url)
 
-        tasks = [fetch_single(url) for url in urls]
-        results = await asyncio.gather(*tasks)
+        # Use ThreadPoolExecutor for parallel fetching
+        with ThreadPoolExecutor(max_threads) as executor:
+            futures = [executor.submit(task, url) for url in urls]
 
-        # Filter out None results
-        return [(html, url) for html, url in zip(results, urls) if html is not None]
+            for future in as_completed(futures):
+                url, cache_file = future.result()
+                if cache_file:
+                    results.append((cache_file, url))
+
+        return results
+
+    def close(self):
+        """Clean up resources."""
+        self.browser.close()
+        self.playwright.stop()
 
 
-def fetch_html(url):
-    """Fetch HTML content asynchronously with caching."""
-    cache_file = DatasetCache.get_cache_file(url)
-    # Check cache
-    if DatasetCache.is_cache_valid(cache_file):
-        print(f"Using cached HTML for {url}")
-        with open(cache_file, "r", encoding="utf-8") as f:
-            return f.read()
+# Example Usage
+if __name__ == "__main__":
+    urls = [
+        "https://example.com",
+        "https://another-example.com",
+        "https://google.com"
+    ]
 
-    # Fetch HTML asynchronously
-    print(f"Fetching HTML for {url}")
+    loader = DataLoader()
     try:
-        with HTMLSession() as session:
-            response = session.get(url, timeout=10, allow_redirects=True)
-        response.html.render(timeout=20)  # Render JavaScript if needed
-        html = response.html.html
-        # Save to cache
-        with open(cache_file, "w", encoding="utf-8") as f:
-            f.write(html)
-
-        return html
-    except Exception as e:
-        print(f"Error fetching {url}: {e}")
-        return None
+        results = loader.fetch_all(urls, max_threads=5)
+        for file_path, url in results:
+            print(f"Cached HTML for {url} at {file_path}")
+    finally:
+        loader.close()

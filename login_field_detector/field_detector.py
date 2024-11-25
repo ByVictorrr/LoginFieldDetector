@@ -1,5 +1,4 @@
 import os
-import json
 from collections import Counter
 import torch
 import numpy as np
@@ -10,11 +9,10 @@ from torch.nn import CrossEntropyLoss
 from transformers import (
     Trainer,
     TrainingArguments,
-    BertForTokenClassification,
     BertTokenizerFast,
-    EarlyStoppingCallback, BertForSequenceClassification,
+    BertForSequenceClassification,
 )
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 
@@ -99,24 +97,24 @@ class LoginFieldDetector:
         }
         return Dataset.from_dict(data)
 
-    def process_urls(self, html_list, o_label_ratio=0.001):
+    def process_urls(self, file_list, o_label_ratio=0.001):
         """Preprocess and balance data."""
         inputs, labels = [], []
-        for html_text in html_list:
+        for file_path in file_list:
             try:
-                tokens, token_labels, _ = self.feature_extractor.get_features(html_text)
+                tokens, token_labels, _ = self.feature_extractor.get_features(file_path)
                 assert len(tokens) == len(token_labels)
                 inputs.extend(tokens)
                 labels.extend(token_labels)
             except Exception as e:
                 print(f"Error processing HTML: {e}")
-        return self._filter_o_labels(inputs, labels, o_label_ratio)
+        return self._filter_unlabeled_labels(inputs, labels, o_label_ratio)
 
-    def _filter_o_labels(self, inputs, labels, ratio):
-        """Reduce the number of 'O' labels for balance."""
+    def _filter_unlabeled_labels(self, inputs, labels, ratio):
+        """Reduce the number of 'UNLABELED' labels for balance."""
         o_inputs, o_labels, non_o_inputs, non_o_labels = [], [], [], []
         for inp, lbl in zip(inputs, labels):
-            if lbl == self.label2id["O"]:
+            if lbl == self.label2id["UNLABELED"]:
                 o_inputs.append(inp)
                 o_labels.append(lbl)
             else:
@@ -127,9 +125,9 @@ class LoginFieldDetector:
         filtered_labels = o_labels[:max_o_count] + non_o_labels
         return filtered_inputs, filtered_labels
 
-    def train(self, html_content_list, output_dir="fine_tuned_model", epochs=10, batch_size=4):
+    def train(self, file_list, output_dir="fine_tuned_model", epochs=10, batch_size=4):
         """Train the model."""
-        inputs, labels = self.process_urls(html_content_list)
+        inputs, labels = self.process_urls(file_list)
         dataset = self.create_dataset(inputs, labels)
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
 
@@ -152,8 +150,13 @@ class LoginFieldDetector:
             class_weights=class_weights,
             compute_metrics=compute_metrics,
         )
+        print("Starting training...")
         trainer.train()
+
+        # Save model and tokenizer
         trainer.save_model(output_dir)
+        self.tokenizer.save_pretrained(output_dir)
+        self.evaluate(val_dataset)
 
     def _compute_class_weights(self, labels):
         """Compute class weights for imbalanced data."""
@@ -168,9 +171,9 @@ class LoginFieldDetector:
             full_weights[cls] = weight
         return torch.tensor(full_weights).to(self.device)
 
-    def predict(self, html_text):
+    def predict(self, file_path):
         """Make predictions on new HTML content."""
-        tokens, _, xpaths = self.feature_extractor.get_features(html_text)
+        tokens, _, xpaths = self.feature_extractor.get_features(file_path)
         # Tokenize the features
         encodings = self.tokenizer(
             tokens,
@@ -196,6 +199,67 @@ class LoginFieldDetector:
             {"token": token, "predicted_label": self.id2label[pred], "xpath": xpath}
             for token, pred, xpath in zip(tokens, predicted_ids, xpaths)
         ]
+
+    def visualize_class_distribution(self, labels):
+        """Plot class distribution."""
+        counts = Counter(labels)
+        class_names = [self.id2label[i] for i in range(len(self.labels))]
+        class_counts = [counts.get(i, 0) for i in range(len(self.labels))]
+
+        plt.figure(figsize=(12, 6))
+        plt.bar(class_names, class_counts, color="skyblue")
+        plt.xlabel("Class Labels")
+        plt.ylabel("Frequency")
+        plt.title("Class Distribution")
+        plt.xticks(rotation=45, ha="right")
+        plt.tight_layout()
+        plt.show()
+
+    def plot_confusion_matrix(self, true_labels, pred_labels):
+        """Plot confusion matrix."""
+        cm = confusion_matrix(true_labels, pred_labels, labels=list(range(len(self.labels))))
+        disp = ConfusionMatrixDisplay(confusion_matrix=cm, display_labels=self.labels)
+        disp.plot(cmap="Blues", xticks_rotation=45)
+        plt.title("Confusion Matrix")
+        plt.show()
+
+    def evaluate(self, dataset):
+        """Evaluate the model on a dataset and plot confusion matrix."""
+        predictions, true_labels = [], []
+        for example in dataset:
+            # Prepare inputs and labels
+            inputs = {key: torch.tensor(value).unsqueeze(0).to(self.device) for key, value in example.items() if
+                      key != "labels"}
+            labels = torch.tensor(example["labels"]).unsqueeze(0).to(self.device)
+
+            # Perform inference
+            with torch.no_grad():
+                outputs = self.model(**inputs)
+            logits = outputs.logits
+
+            # Get predictions and true labels, filtering out ignored tokens (-100)
+            preds = torch.argmax(logits, dim=-1).squeeze().tolist()
+            true = labels.squeeze().tolist()
+
+            filtered_preds = [p for p, t in zip(preds, true) if t != -100]
+            filtered_true = [t for t in true if t != -100]
+
+            predictions.extend(filtered_preds)
+            true_labels.extend(filtered_true)
+
+        # Define all possible labels (use the full id2label mapping)
+        all_labels = sorted(self.id2label.keys())  # Ensure all labels are included
+        target_labels = [self.id2label[label] for label in all_labels]
+
+        self.visualize_class_distribution(true_labels)
+        self.plot_confusion_matrix(true_labels, predictions)
+        # Generate the classification report
+        print(classification_report(
+            true_labels,
+            predictions,
+            target_names=target_labels,
+            labels=all_labels  # Ensure classification_report includes all classes
+        ))
 
 
 if __name__ == "__main__":

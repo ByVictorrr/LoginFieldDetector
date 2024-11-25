@@ -3,13 +3,7 @@ import json
 import os
 import logging
 from bs4 import BeautifulSoup
-
-
-def load_oauth_names():
-    """Load OAuth provider names from a JSON file."""
-    oauth_file = os.path.join(os.path.dirname(__file__), "oauth_providers.json")
-    with open(oauth_file, "r") as flp:
-        return json.load(flp)
+from playwright.sync_api import sync_playwright
 
 
 def get_xpath(element):
@@ -24,129 +18,149 @@ def get_xpath(element):
 
 
 # Label definitions
-LABELS = ["O", "USERNAME", "PASSWORD", "2FA", "NEXT", "LOGIN", "OAUTH"]
+LABELS = [
+    "UNLABELED",
+    "USERNAME",
+    "PHONE_NUMBER",
+    "PASSWORD",
+    "LOGIN_BUTTON",
+    "TWO_FACTOR_AUTH",
+    "SOCIAL_LOGIN_BUTTONS",
+    "CAPTCHA",
+    # below does not count
+    "FORGOT_PASSWORD",
+    "SIGN_UP",
+    "REMEMBER_ME",
+    "HELP_LINK",
+    "PRIVACY_POLICY",
+    "TERMS_OF_SERVICE",
+    "NAVIGATION_LINK",
+    "BANNER",
+    "ADVERTISEMENTS",
+    "COOKIE_POLICY",
+    "IMPRINT"
+]
+
 PATTERNS = {
     "USERNAME": re.compile(r"(email|e-mail|phone|user|username|account|id|identifier)", re.IGNORECASE),
+    "PHONE_NUMBER": re.compile(r"(phone|mobile|contact number|cell)", re.IGNORECASE),
     "PASSWORD": re.compile(r"(pass|password|pwd|secret|key|pin|phrase)", re.IGNORECASE),
-    "2FA": re.compile(r"(2fa|auth|code|otp|verification|token|one-time)", re.IGNORECASE),
-    "LOGIN": re.compile(r"(login|log in|sign in|access|proceed|continue|submit|sign-on)", re.IGNORECASE),
+    "LOGIN_BUTTON": re.compile(r"(login|log in|sign in|access|proceed|continue|submit|sign-on)", re.IGNORECASE),
+    "FORGOT_PASSWORD": re.compile(r"(forgot password|reset password|can't access|retrieve)", re.IGNORECASE),
+    "CAPTCHA": re.compile(r"(captcha|i'm not a robot|security check|verify)", re.IGNORECASE),
+    "TWO_FACTOR_AUTH": re.compile(r"(2fa|authenticator|verification code|token|one-time code)", re.IGNORECASE),
+    "SOCIAL_LOGIN_BUTTONS": re.compile(r"(login with|sign in with|connect with|continue with)", re.IGNORECASE),
+    "SIGN_UP": re.compile(r"(sign up|register|create account|join now|get started)", re.IGNORECASE),
+    "REMEMBER_ME": re.compile(r"(remember me|stay signed in|keep me logged in)", re.IGNORECASE),
+    "HELP_LINK": re.compile(r"(help|support|faq|contact us|need assistance)", re.IGNORECASE),
+    "PRIVACY_POLICY": re.compile(r"(privacy policy|data protection|terms of privacy|gdpr)", re.IGNORECASE),
+    "TERMS_OF_SERVICE": re.compile(r"(terms of service|terms and conditions|user agreement)", re.IGNORECASE),
+    "NAVIGATION_LINK": re.compile(r"(home|back|next|previous|menu|navigate|main page)", re.IGNORECASE),
+    "BANNER": re.compile(r"(banner|announcement|alert|header|promotion)", re.IGNORECASE),
+    "ADVERTISEMENTS": re.compile(r"(ad|advertisement|promo|sponsored|ads by)", re.IGNORECASE),
+    "COOKIE_POLICY": re.compile(r"(cookie policy|cookies|tracking policy|data usage)", re.IGNORECASE),
+    "IMPRINT": re.compile(r"(imprint|legal notice|about us|company details|contact info)", re.IGNORECASE),
 }
 
 
-OAUTH_PROVIDERS = load_oauth_names()
+def preprocess_field(tag):
+    """Preprocess an HTML token to combine text, parent, sibling, and metadata."""
+    text = tag.get_text(strip=True).lower()
+    # Sort and process metadata attributes
+    sorted_metadata = {
+        k: " ".join(sorted(v)) if isinstance(v, list) else str(v)
+        for k, v in sorted(tag.attrs.items())
+    }
+    metadata_str = " ".join(f"[{k.upper()}:{v}]" for k, v in sorted_metadata.items())
+    # Extract parent tag and sibling information
+    parent_tag = f"[PARENT:{tag.parent.name}]" if tag.parent else "[PARENT:NONE]"
+    previous_sibling = f"[PREV_SIBLING:{tag.find_previous_sibling().name}]" if tag.find_previous_sibling() else "[PREV_SIBLING:NONE]"
+    next_sibling = f"[NEXT_SIBLING:{tag.find_next_sibling().name}]" if tag.find_next_sibling() else "[NEXT_SIBLING:NONE]"
+    # Combine all into a single string
+    return f"[TAG:{tag.name}] {f'[TEXT:{text}]' if text else ''} {parent_tag} {previous_sibling} {next_sibling} {metadata_str}"
+
+
+def determine_label(tag):
+    """Determine the label of an HTML tag based on patterns."""
+    text = tag.get_text(strip=True).lower()  # Extract the visible text inside the tag
+
+    # Normalize attributes: lowercase keys, convert lists to space-separated strings
+    attributes = {
+        k.lower(): (v if isinstance(v, str) else " ".join(v) if isinstance(v, list) else "")
+        for k, v in tag.attrs.items()
+    }
+
+    # Check patterns for labels
+    for label, pattern in PATTERNS.items():
+        if pattern.search(text) or any(pattern.search(v) for v in attributes.values()):
+            return label
+
+    # Default label
+    return LABELS[0]
 
 
 class HTMLFeatureExtractor:
     def __init__(self, label2id, oauth_providers=None):
-        """
-        Initialize the extractor with label mappings and optional OAuth providers.
-        """
+        """Initialize the extractor with label mappings and optional OAuth providers."""
         self.label2id = label2id
-        self.oauth_providers = oauth_providers or OAUTH_PROVIDERS
+        if not oauth_providers:
+            oauth_file = os.path.join(os.path.dirname(__file__), "oauth_providers.json")
+            with open(oauth_file, "r") as flp:
+                oauth_providers = json.load(flp)
+        self.oauth_providers = oauth_providers
 
-    def preprocess_field(self, tag):
-        """
-        Preprocess an HTML token to combine text, parent, sibling, and metadata.
-        """
-        text = tag.get_text(strip=True).lower()
+    def get_features(self, file_path):
+        """Extract tokens, labels, xpaths, and bounding boxes from an HTML file."""
+        # Read and parse the HTML
+        with open(file_path, "r", encoding="utf-8") as html_fp:
+            html_text = html_fp.read()
+        soup = BeautifulSoup(html_text, "lxml")
 
-        # Sort and process metadata attributes
-        sorted_metadata = {
-            k: " ".join(sorted(v)) if isinstance(v, list) else str(v)
-            for k, v in sorted(tag.attrs.items())
-        }
-        metadata_str = " ".join(f"[{k.upper()}:{v}]" for k, v in sorted_metadata.items())
+        tokens, labels, xpaths, bboxes = [], [], [], []
 
-        # Extract parent tag and sibling information
-        parent_tag = f"[PARENT:{tag.parent.name}]" if tag.parent else "[PARENT:NONE]"
-        previous_sibling = f"[PREV_SIBLING:{tag.find_previous_sibling().name}]" if tag.find_previous_sibling() else "[PREV_SIBLING:NONE]"
-        next_sibling = f"[NEXT_SIBLING:{tag.find_next_sibling().name}]" if tag.find_next_sibling() else "[NEXT_SIBLING:NONE]"
+        # Start Playwright
+        with sync_playwright() as playwright:
+            browser = playwright.chromium.launch(headless=True)
+            page = browser.new_page()
 
-        # Combine all into a single string
-        combined_input = f"[TAG:{tag.name}] {f'[TEXT:{text}]' if text else ''} {parent_tag} {previous_sibling} {next_sibling} {metadata_str}"
-        return combined_input
+            # Load the local HTML file
+            page.goto(f"file:///{os.path.abspath(file_path)}")
 
-    def get_features(self, html):
-        """
-        Extract tokens, labels, and xpaths from HTML.
-        """
-        soup = BeautifulSoup(html, "lxml")
-        tokens, labels, xpaths = [], [], []
+            # Process relevant tags
+            for tag in soup.find_all(["input", "button", "a", "iframe"]):
+                # Skip irrelevant tags
+                if any(
+                        [
+                            tag.attrs.get("type") == "hidden",
+                            "hidden" in tag.attrs.get("class", []),
+                            "display: none" in tag.attrs.get("style", ""),
+                        ]
+                ):
+                    continue
 
-        for tag in soup.find_all(["input", "button", "a", "iframe"]):
-            # Skip irrelevant tags
-            if any(
-                    [
-                        tag.attrs.get("type") == "hidden",
-                        "hidden" in tag.attrs.get("class", []),
-                        "display: none" in tag.attrs.get("style", ""),
-                    ]
-            ):
-                continue
+                # Determine the label
+                label = determine_label(tag)  # Replace with your actual logic
 
-            # Determine the label
-            label = self._determine_label(tag)
+                # Generate XPath
+                xpath = get_xpath(tag)  # Replace with your XPath generation logic
 
-            # Generate XPath (if needed)
-            xpath = get_xpath(tag)
+                # Locate the element in Playwright
+                try:
+                    element = page.locator(f"xpath={xpath}")
+                    bbox = element.bounding_box()
+                except Exception as e:
+                    print(f"Error locating element for XPath {xpath}: {e}")
+                    bbox = None
 
-            # Preprocess token
-            preprocessed_token = self.preprocess_field(tag)
+                # Preprocess token
+                preprocessed_token = preprocess_field(tag)  # Replace with your preprocessing logic
 
-            # Append results
-            tokens.append(preprocessed_token)
-            labels.append(self.label2id[label])
-            xpaths.append(xpath)
+                # Append results
+                tokens.append(preprocessed_token)
+                labels.append(self.label2id[label])
+                xpaths.append(xpath)
+                bboxes.append(bbox)
 
-        return tokens, labels, xpaths
+            browser.close()
 
-    def _determine_label(self, tag):
-        """Determine the label of an HTML tag based on patterns."""
-        text = tag.get_text(strip=True).lower()  # Extract the visible text inside the tag
-        input_type = tag.attrs.get("type", "text").lower()  # Default to "text" if no type
-
-        # Normalize attributes: lowercase keys, convert lists to space-separated strings
-        attributes = {
-            k.lower(): (v if isinstance(v, str) else " ".join(v) if isinstance(v, list) else "")
-            for k, v in tag.attrs.items()
-        }
-
-        # If the tag is an input element
-        if tag.name == "input":
-            # Check for USERNAME
-            if PATTERNS["USERNAME"].search(text) or any(PATTERNS["USERNAME"].search(v) for v in attributes.values()):
-                return "USERNAME"
-
-            # Check for PASSWORD
-            if (
-                    input_type == "password"
-                    or PATTERNS["PASSWORD"].search(text)
-                    or any(PATTERNS["PASSWORD"].search(v) for v in attributes.values())
-                    or tag.attrs.get("type", "").lower() == "password"
-            ):
-                return "PASSWORD"
-
-                # Check for 2FA
-            if PATTERNS["2FA"].search(text) or any(PATTERNS["2FA"].search(v) for v in attributes.values()):
-                return "2FA"
-
-        # Process 'button' tags
-        if tag.name == "button":
-            if PATTERNS["LOGIN"].search(text) or attributes.get("type") == "submit":
-                return "LOGIN"
-
-        # Process 'a' tags
-        if tag.name == "a":
-            if any(provider in text for provider in self.oauth_providers):
-                return "OAUTH"
-            if "next" in text or "continue" in text:
-                return "NEXT"
-
-        # Process 'iframe' tags
-        if tag.name == "iframe":
-            if any(provider in text for provider in self.oauth_providers):
-                return "OAUTH"
-
-        # Default label
-        return "O"
-
+        return tokens, labels, xpaths, bboxes
