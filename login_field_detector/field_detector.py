@@ -1,3 +1,4 @@
+import logging
 import json
 from collections import Counter, defaultdict
 import torch
@@ -7,6 +8,8 @@ from datasets import Dataset
 from torch import softmax
 from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
+from torch.utils.data import DataLoader, Dataset, random_split
+from torch.utils.data import Dataset
 from transformers import (
     Trainer,
     TrainingArguments,
@@ -16,8 +19,9 @@ from transformers import (
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
-from .data_loader import DataLoader
+from .html_fetcher import HTMLFetcher
 
+log = logging.getLogger(__name__)
 
 # Utility Functions
 def compute_metrics(pred):
@@ -28,6 +32,45 @@ def compute_metrics(pred):
     labels_flat = labels[valid_mask]
     preds_flat = preds[valid_mask]
     return {"accuracy": accuracy_score(labels_flat, preds_flat)}
+
+
+
+
+class CustomDataset(Dataset):
+    """
+    Custom PyTorch Dataset for handling inputs and labels.
+    """
+
+    def __init__(self, inputs, labels, tokenizer, max_length=512):
+        self.inputs = inputs
+        self.labels = labels
+        self.tokenizer = tokenizer
+        self.max_length = max_length
+
+    def __len__(self):
+        return len(self.inputs)
+
+    def __getitem__(self, idx):
+        # Tokenize input and prepare tensor format
+        encoding = self.tokenizer(
+            self.inputs[idx],
+            truncation=True,
+            padding="max_length",
+            max_length=self.max_length,
+            return_tensors="pt",
+        )
+        item = {
+            "input_ids": encoding["input_ids"].squeeze(0),  # Remove batch dim
+            "attention_mask": encoding["attention_mask"].squeeze(0),
+            "labels": torch.tensor(self.labels[idx], dtype=torch.long),
+        }
+        return item
+
+
+def create_dataset(self, inputs, labels, batch_size, shuffle=True):
+    """Create a PyTorch DataLoader from inputs and labels."""
+    dataset = CustomDataset(inputs, labels, self.tokenizer)
+    return DataLoader(dataset, batch_size=batch_size, shuffle=shuffle)
 
 
 class WeightedTrainer(Trainer):
@@ -58,10 +101,8 @@ class LoginFieldDetector:
         self.labels = labels
         self.label2id = {label: i for i, label in enumerate(self.labels)}
         self.id2label = {i: label for label, i in self.label2id.items()}
-
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
-        print(f"Using device: {self.device}")
-
+        log.info(f"Using device: {self.device}")
         try:
             self.tokenizer = BertTokenizerFast.from_pretrained(model_dir)
             self.model = BertForSequenceClassification.from_pretrained(
@@ -71,7 +112,7 @@ class LoginFieldDetector:
                 label2id=self.label2id,
             )
         except Exception as e:
-            print(f"Warning: {model_dir} not found or invalid. Using 'bert-base-uncased' as default. Error: {e}")
+            log.warning(f"Warning: {model_dir} not found or invalid. Using 'bert-base-uncased' as default. Error: {e}")
             self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
             self.model = BertForSequenceClassification.from_pretrained(
                 "bert-base-uncased",
@@ -79,12 +120,11 @@ class LoginFieldDetector:
                 id2label=self.id2label,
                 label2id=self.label2id,
             )
-
         self.model = self.model.to(self.device)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
-        self.url_loader = DataLoader()
+        self.url_loader = HTMLFetcher()
 
-    def create_dataset(self, inputs, labels):
+    def create_dataset(self, inputs, labels, batch_size):
         """Align 1D labels with tokenized inputs."""
         encodings = self.tokenizer(
             inputs,
@@ -93,12 +133,12 @@ class LoginFieldDetector:
             max_length=512,
             return_tensors="pt",
         )
-        data = {
+        dataset = Dataset.from_dict({
             "input_ids": encodings["input_ids"],
             "attention_mask": encodings["attention_mask"],
             "labels": torch.tensor(labels, dtype=torch.long),
-        }
-        return Dataset.from_dict(data)
+        })
+        return DataLoader(dataset, batch_size=batch_size, shuffle=True)
 
     def process_urls(self, urls, o_label_ratio=0.001):
         """Preprocess, balance data, and include bounding boxes."""
@@ -113,7 +153,7 @@ class LoginFieldDetector:
                 inputs.extend(tokens)
                 labels.extend(token_labels)
             except Exception as e:
-                print(f"Error processing {url}: {e}")
+                log.warning(f"Error processing {url}: {e}")
 
         # Balance and filter inputs, labels, and bounding boxes
         return self._filter_unlabeled_labels(inputs, labels, o_label_ratio)
@@ -138,38 +178,88 @@ class LoginFieldDetector:
 
         return filtered_inputs, filtered_labels
 
-    def train(self, urls, output_dir="fine_tuned_model", epochs=10, batch_size=4):
-        """Train the model."""
+    def train(self, urls, output_dir="fine_tuned_model", epochs=10, batch_size=8):
+        """
+        Train the model using PyTorch DataLoader with class weights.
+        """
+        # Fetch and preprocess data
         inputs, labels = self.process_urls(urls)
-        dataset = self.create_dataset(inputs, labels)
-        train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
 
+        # Create PyTorch Dataset
+        dataset = CustomDataset(inputs, labels, self.tokenizer)
+
+        # Split into training and validation sets
+        train_size = int(0.8 * len(dataset))
+        val_size = len(dataset) - train_size
+        train_dataset, val_dataset = random_split(dataset, [train_size, val_size])
+
+        # Create DataLoaders
+        train_loader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True)
+        val_loader = DataLoader(val_dataset, batch_size=batch_size)
+
+        # Compute class weights
         class_weights = self._compute_class_weights(labels)
-        training_args = TrainingArguments(
-            output_dir=output_dir,
-            evaluation_strategy="steps",
-            save_strategy="steps",
-            per_device_train_batch_size=batch_size,
-            num_train_epochs=epochs,
-            logging_dir="logs",
-            fp16=torch.cuda.is_available(),
-        )
-        trainer = WeightedTrainer(
-            model=self.model,
-            device=self.device,
-            args=training_args,
-            train_dataset=train_dataset,
-            eval_dataset=val_dataset,
-            class_weights=class_weights,
-            compute_metrics=compute_metrics,
-        )
-        print("Starting training...")
-        trainer.train()
+
+        # Move class weights to the correct device
+        class_weights = class_weights.to(self.device)
+
+        # Define optimizer and loss function
+        optimizer = torch.optim.AdamW(self.model.parameters(), lr=5e-5)
+        loss_fn = torch.nn.CrossEntropyLoss(weight=class_weights)
+
+        # Training loop
+        for epoch in range(epochs):
+            print(f"Epoch {epoch + 1}/{epochs}")
+            self.model.train()
+            total_loss = 0
+
+            for batch in train_loader:
+                inputs = batch["input_ids"].to(self.device)
+                attention_mask = batch["attention_mask"].to(self.device)
+                labels = batch["labels"].to(self.device)
+
+                # Forward pass
+                outputs = self.model(input_ids=inputs, attention_mask=attention_mask)
+                logits = outputs.logits
+                loss = loss_fn(logits, labels)
+
+                # Backward pass
+                optimizer.zero_grad()
+                loss.backward()
+                optimizer.step()
+
+                total_loss += loss.item()
+
+            avg_loss = total_loss / len(train_loader)
+            print(f"Training Loss: {avg_loss:.4f}")
+
+            # Validation loop
+            self.model.eval()
+            val_loss = 0
+            correct = 0
+            total = 0
+            with torch.no_grad():
+                for batch in val_loader:
+                    inputs = batch["input_ids"].to(self.device)
+                    attention_mask = batch["attention_mask"].to(self.device)
+                    labels = batch["labels"].to(self.device)
+
+                    outputs = self.model(input_ids=inputs, attention_mask=attention_mask)
+                    logits = outputs.logits
+                    loss = loss_fn(logits, labels)
+
+                    val_loss += loss.item()
+                    predictions = torch.argmax(logits, dim=1)
+                    correct += (predictions == labels).sum().item()
+                    total += labels.size(0)
+
+            avg_val_loss = val_loss / len(val_loader)
+            accuracy = correct / total
+            print(f"Validation Loss: {avg_val_loss:.4f}, Accuracy: {accuracy:.4f}")
 
         # Save model and tokenizer
-        trainer.save_model(output_dir)
+        torch.save(self.model.state_dict(), f"{output_dir}/model.pt")
         self.tokenizer.save_pretrained(output_dir)
-        self.evaluate(val_dataset)
 
     def _compute_class_weights(self, labels):
         """Compute class weights for imbalanced data."""

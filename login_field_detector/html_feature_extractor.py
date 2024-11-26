@@ -18,30 +18,8 @@ def get_xpath(element):
 with open(os.path.join(os.path.dirname(__file__), "keywords.json"), "r") as key_fp:
     keywords = json.load(key_fp)
 
-# Label definitions
-LABELS = [
-    "UNLABELED",
-    "USERNAME",
-    "PHONE_NUMBER",
-    "PASSWORD",
-    "LOGIN_BUTTON",
-    "TWO_FACTOR_AUTH",
-    "SOCIAL_LOGIN_BUTTONS",
-    "CAPTCHA",
-    # below does not count
-    "LANGUAGE_SWITCH",
-    "FORGOT_PASSWORD",
-    "SIGN_UP",
-    "REMEMBER_ME",
-    "HELP_LINK",
-    "PRIVACY_POLICY",
-    "TERMS_OF_SERVICE",
-    "NAVIGATION_LINK",
-    "BANNER",
-    "ADVERTISEMENTS",
-    "COOKIE_POLICY",
-    "IMPRINT"
-]
+
+LABELS = keywords["labels"]
 PATTERNS = {
     "FORGOT_PASSWORD": re.compile(
         r"(forgot (?:password|account)|reset password|can't access|retrieve|trouble signing in|recover your account)",

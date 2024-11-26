@@ -24,7 +24,7 @@ class RedisDatasetCache:
         return hashlib.md5(url.encode()).hexdigest()
 
 
-class DataLoader:
+class HTMLFetcher:
     def __init__(self, cache=None, max_workers=10):
         self.cache = cache or RedisDatasetCache()
         self.max_workers = max_workers

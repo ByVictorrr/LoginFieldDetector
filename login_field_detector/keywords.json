@@ -31,5 +31,27 @@
             "japanese",
             "german",
             "french"
+      ],
+      "labels": [
+          "UNLABELED",
+          "USERNAME",
+          "PHONE_NUMBER",
+          "PASSWORD",
+          "LOGIN_BUTTON",
+          "TWO_FACTOR_AUTH",
+          "SOCIAL_LOGIN_BUTTONS",
+          "CAPTCHA",
+          "LANGUAGE_SWITCH",
+          "FORGOT_PASSWORD",
+          "SIGN_UP",
+          "REMEMBER_ME",
+          "HELP_LINK",
+          "PRIVACY_POLICY",
+          "TERMS_OF_SERVICE",
+          "NAVIGATION_LINK",
+          "BANNER",
+          "ADVERTISEMENTS",
+          "COOKIE_POLICY",
+          "IMPRINT"
       ]
 }
