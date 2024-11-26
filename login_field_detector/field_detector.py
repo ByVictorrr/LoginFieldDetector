@@ -100,7 +100,7 @@ class LoginFieldDetector:
         }
         return Dataset.from_dict(data)
 
-    def process_urls(self, urls, o_label_ratio=0.001):
+    def process_urls(self, urls, o_label_ratio=0.5):
         """Preprocess, balance data, and include bounding boxes."""
         inputs, labels = [], []
         for url, text in self.url_loader.fetch_all(urls).items():
@@ -147,7 +147,10 @@ class LoginFieldDetector:
         training_args = TrainingArguments(
             output_dir=output_dir,
             evaluation_strategy="steps",
+            eval_steps=500,
+            logging_steps=100,
             save_strategy="steps",
+            save_steps=500,
             per_device_train_batch_size=batch_size,
             num_train_epochs=epochs,
             logging_dir="logs",

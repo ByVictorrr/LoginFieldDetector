@@ -126,7 +126,7 @@ def determine_label(tag):
         for k, v in tag.attrs.items()
     }
 
-    # Check patterns for labels
+    # Check patterns for label78:2B:64:CE:21:A7s
     for label, pattern in PATTERNS.items():
         if pattern.search(text) or any(pattern.search(v) for v in attributes.values()):
             return label

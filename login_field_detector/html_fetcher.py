@@ -1,5 +1,4 @@
 import logging
-import traceback
 import requests
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -35,19 +34,19 @@ class HTMLFetcher:
         self.user_agent = UserAgent()
 
     def create_scraper(self):
-        return cloudscraper.create_scraper(
-            browser={"custom": self.user_agent.random},
-            headers={
-                "Referer": "https://www.google.com",
-                "Accept-Language": "en-US,en;q=0.9",
-                "Accept-Encoding": "gzip, deflate, br",
-            },
+        scraper = cloudscraper.create_scraper(
+            browser={"custom": self.user_agent.random}
         )
+        scraper.headers.update({
+            "Referer": "https://www.google.com",
+            "Accept-Language": "en-US,en;q=0.9",
+            "Accept-Encoding": "gzip, deflate, br",
+        })
+        return scraper
 
     @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(5))
     def fetch_html(self, url):
-        cached_content = self.cache.get(url)
-        if cached_content:
+        if cached_content := self.cache.get(url):
             log.info(f"Using cached HTML for {url}")
             return cached_content
 
@@ -81,10 +80,7 @@ class HTMLFetcher:
                 except RetryError as retry_error:
                     original_exception = retry_error.last_attempt.exception()
                     log.warning(
-                        f"RetryError for {url}: {retry_error}. Original exception: {original_exception}\n"
-                        f"Stack trace: {traceback.format_exc()}"
-                    )
+                        f"RetryError for {url}: {retry_error}. Original exception: {original_exception}")
                 except Exception as e:
-                    log.warning(f"Error processing {url}: {e}\nStack trace: {traceback.format_exc()}")
+                    log.warning(f"Error processing {url}: {e}.")
         return results
-

@@ -1,7 +1,25 @@
 # test_html_feature_extractor.py
+import json
+import os.path
+import logging
 import pytest
 from bs4 import BeautifulSoup
-from login_field_detector import determine_label
+from login_field_detector import determine_label, HTMLFetcher, HTMLFeatureExtractor, LABELS
+
+log = logging.getLogger(__file__)
+
+with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json"), "r") as fp:
+    TRAINING_URLS = json.load(fp=fp)
+
+
+@pytest.mark.parametrize("url", TRAINING_URLS)
+def test_html_extractor(url):
+    fetcher = HTMLFetcher()
+    html_text = fetcher.fetch_html(url)
+    extractor = HTMLFeatureExtractor({label: i for i, label in enumerate(LABELS)})
+    tokens, labels, _ = extractor.get_features(html_text)
+    for token, label in zip(tokens, [LABELS[l] for l in labels]):
+        log.info(f"{label=}: {token=}")
 
 
 @pytest.mark.parametrize(
@@ -35,4 +53,3 @@ def test_hidden_input_is_unlabeled():
     soup = BeautifulSoup(html_snippet, "lxml")
     tag = soup.find()
     assert determine_label(tag) == "UNLABELED"
-
