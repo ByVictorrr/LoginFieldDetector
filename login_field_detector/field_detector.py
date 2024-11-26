@@ -1,11 +1,12 @@
 import json
-from collections import Counter
+from collections import Counter, defaultdict
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from datasets import Dataset
 from torch import softmax
 from torch.nn import CrossEntropyLoss
+import torch.nn.functional as F
 from transformers import (
     Trainer,
     TrainingArguments,
@@ -183,10 +184,16 @@ class LoginFieldDetector:
             full_weights[cls] = weight
         return torch.tensor(full_weights).to(self.device)
 
-    def predict(self, url):
-        """Make predictions on new HTML content."""
+    from collections import defaultdict
+
+    def predict(self, url, probability_threshold=0.5):
+        """
+        Make predictions on new HTML content, allowing multiple entries per label
+        above a specified probability threshold and sorted by probability.
+        """
         html_content = self.url_loader.fetch_html(url)
         tokens, _, xpaths = self.feature_extractor.get_features(html_content)
+
         # Tokenize the features
         encodings = self.tokenizer(
             tokens,
@@ -203,16 +210,39 @@ class LoginFieldDetector:
         with torch.no_grad():
             outputs = self.model(**inputs)
         logits = outputs.logits
+
         # Apply softmax to logits to get probabilities
-        probabilities = softmax(logits, dim=-1)
+        probabilities = F.softmax(logits, dim=-1)
+
         # Convert logits to predicted labels
         predicted_ids = torch.argmax(logits, dim=-1).tolist()
 
-        # Generate predictions with corresponding xpaths
-        return [
-            {"token": token, "predicted_label": self.id2label[pred], "xpath": xpath, "probability": prob}
-            for token, pred, prob, xpath in zip(tokens, predicted_ids, probabilities, xpaths)
-        ]
+        # Group predictions by labels, filtering by probability threshold
+        label_predictions = defaultdict(list)  # Use defaultdict for easier grouping
+        for token, pred_id, prob_vector, xpath in zip(tokens, predicted_ids, probabilities, xpaths):
+            label = self.id2label[pred_id]
+            prob = prob_vector[pred_id].item()
+
+            # Only include predictions above the probability threshold
+            if prob >= probability_threshold:
+                label_predictions[label].append({
+                    "token": token,
+                    "xpath": xpath,
+                    "probability": prob,
+                })
+
+        # Normalize probabilities for each label group and sort by probability (highest first)
+        for label, predictions in label_predictions.items():
+            # Sort by probability (highest probability first)
+            predictions.sort(key=lambda pred: pred["probability"], reverse=True)
+
+            # Normalize probabilities
+            total_prob = sum(pred["probability"] for pred in predictions)
+            for pred in predictions:
+                pred["normalized_probability"] = pred["probability"] / total_prob
+
+        # Return predictions sorted by probability for each label
+        return label_predictions
 
     def visualize_class_distribution(self, labels):
         """Plot class distribution."""
@@ -279,7 +309,6 @@ class LoginFieldDetector:
             target_names=target_labels,
             labels=all_labels  # Ensure classification_report includes all classes
         ))
-
 
 
 if __name__ == "__main__":

@@ -502,7 +502,16 @@
   "https://auth.huffpost.com/login",
   "https://auth.linktr.ee/login",
   "https://auth.fandom.com/signin",
-  "https://www.wikihow.com/Main-Page#wh-dialog-login"
+  "https://www.wikihow.com/Main-Page#wh-dialog-login",
+  "https://www.upwork.com/ab/account-security/login",
+  "https://dribbble.com/signup/new",
+  "https://www.pexels.com/login/",
+  "https://www.gettyimages.com/sign-in",
+  "https://id.trimble.com/ui/sign_in.html",
+  "https://idp.corel.com/idp/profile/SAML2/POST/SSO?execution=e1s2",
+  "https://www.vrbo.com/login?enable_login=true"
+
+
 
 
 
