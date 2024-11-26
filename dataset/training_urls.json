@@ -516,10 +516,15 @@
   "https://lucid.app/users/login",
   "https://www.change.org/login_or_join",
   "https://www.gofundme.com/sign-in",
-  "https://www.justgiving.com/sso"
-
-
-
-
-
+  "https://www.justgiving.com/sso",
+  "https://www.spoonflower.com/login",
+  "https://www.stitchfix.com/login",
+  "https://dribbble.com/session/new",
+  "https://www.houzz.com/houzz-login",
+  "https://www.saksfifthavenue.com/account/login",
+  "https://www.researchgate.net/login",
+  "https://www.zotero.org/user/login/",
+  "https://www.overleaf.com/login",
+  "https://figshare.com/account/login",
+  "https://www.webofscience.com/"
 ]

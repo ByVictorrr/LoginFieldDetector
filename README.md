@@ -173,15 +173,18 @@ TrainingArguments(deepspeed="ds_config.json")
 
 ---
 
-### **8. Profile and Debug Bottlenecks**
+### **torch.compile(model)*
 - Use PyTorch’s profiler to identify bottlenecks:
   ```python
-  from torch.profiler import profile, record_function, ProfilerActivity
-
-  with profile(activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA]) as prof:
-      trainer.train()
-  print(prof.key_averages().table(sort_by="cuda_time_total"))
+    self.model = self.model.to(self.device)
+    self.model = torch.compile(self.model)
+    log.info("Model successfully compiled with torch.compile.")
   ```
+#### Install prerequisites
+```bash
+pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+
+```
 
 ---
 
@@ -193,3 +196,4 @@ TrainingArguments(deepspeed="ds_config.json")
 5. **Reduce evaluation frequency** and sequence length.
 
 Let me know if you’d like help implementing any of these optimizations!
+

@@ -11,4 +11,7 @@ cloudscraper
 fake-useragent
 tenacity
 redis
+-f https://download.pytorch.org/whl/cu118
+torchvision
+torchaudio
 pytest

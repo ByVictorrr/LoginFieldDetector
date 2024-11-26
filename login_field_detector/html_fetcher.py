@@ -1,10 +1,14 @@
+import logging
+import traceback
+import requests
+import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import cloudscraper
-import requests
 from fake_useragent import UserAgent
 import redis
-import hashlib
-from tenacity import retry, wait_exponential, stop_after_attempt
+from tenacity import retry, wait_exponential, stop_after_attempt, RetryError
+
+log = logging.getLogger(__file__)
 
 
 class RedisDatasetCache:
@@ -44,10 +48,10 @@ class HTMLFetcher:
     def fetch_html(self, url):
         cached_content = self.cache.get(url)
         if cached_content:
-            print(f"Using cached HTML for {url}")
+            log.info(f"Using cached HTML for {url}")
             return cached_content
 
-        print(f"Fetching HTML for {url}")
+        log.info(f"Fetching HTML for {url}")
         scraper = self.create_scraper()
         try:
             response = scraper.get(url, timeout=20, allow_redirects=True)
@@ -56,12 +60,14 @@ class HTMLFetcher:
             self.cache.set(url, html)
             return html
         except requests.exceptions.SSLError as e:
-            print(f"SSL error for {url}: {e}")
+            log.warning(f"SSL error for {url}: {e}")
+            raise  # Re-raise to trigger retry
         except requests.exceptions.TooManyRedirects as e:
-            print(f"Too many redirects for {url}: {e}")
+            log.warning(f"Too many redirects for {url}: {e}")
+            raise  # Re-raise to trigger retry
         except Exception as e:
-            print(f"Error fetching {url}: {e}")
-            raise
+            log.warning(f"General error fetching {url}: {e}")
+            raise  # Re-raise to trigger retry
 
     def fetch_all(self, urls):
         results = {}
@@ -72,6 +78,13 @@ class HTMLFetcher:
                 try:
                     if html := future.result():
                         results[url] = html
+                except RetryError as retry_error:
+                    original_exception = retry_error.last_attempt.exception()
+                    log.warning(
+                        f"RetryError for {url}: {retry_error}. Original exception: {original_exception}\n"
+                        f"Stack trace: {traceback.format_exc()}"
+                    )
                 except Exception as e:
-                    print(f"Error processing {url}: {e}")
+                    log.warning(f"Error processing {url}: {e}\nStack trace: {traceback.format_exc()}")
         return results
+

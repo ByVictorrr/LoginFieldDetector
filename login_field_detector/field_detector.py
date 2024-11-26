@@ -5,16 +5,13 @@ import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from datasets import Dataset
-from torch import softmax
 from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
-from torch.utils.data import DataLoader, Dataset, random_split
-from torch.utils.data import Dataset
 from transformers import (
     Trainer,
     TrainingArguments,
-    BertTokenizerFast,
-    BertForSequenceClassification,
+    DistilBertForSequenceClassification,
+    DistilBertTokenizerFast,
 )
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
@@ -56,7 +53,7 @@ class WeightedTrainer(Trainer):
 class LoginFieldDetector:
     """Model for login field detection using BERT."""
 
-    def __init__(self, model_dir=f"fine_tuned_model", labels=LABELS, device=None):
+    def __init__(self, model_dir=f"html_field_detector", labels=LABELS, device=None):
         if not labels:
             raise ValueError("Labels must be provided to initialize the model.")
         self.labels = labels
@@ -65,23 +62,25 @@ class LoginFieldDetector:
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         log.info(f"Using device: {self.device}")
         try:
-            self.tokenizer = BertTokenizerFast.from_pretrained(model_dir)
-            self.model = BertForSequenceClassification.from_pretrained(
+            self.tokenizer = DistilBertTokenizerFast.from_pretrained(model_dir)
+            self.model = DistilBertForSequenceClassification.from_pretrained(
                 model_dir,
                 num_labels=len(self.labels),
                 id2label=self.id2label,
                 label2id=self.label2id,
             )
         except Exception as e:
-            log.warning(f"Warning: {model_dir} not found or invalid. Using 'bert-base-uncased' as default. Error: {e}")
-            self.tokenizer = BertTokenizerFast.from_pretrained("bert-base-uncased")
-            self.model = BertForSequenceClassification.from_pretrained(
-                "bert-base-uncased",
+            log.warning(f"Warning: {model_dir} not found or invalid. Using 'distilbert-base-uncased' as default. "
+                        f"Error: {e}")
+            self.tokenizer = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
+            self.model = DistilBertForSequenceClassification.from_pretrained(
+                "distilbert-base-uncased",
                 num_labels=len(self.labels),
                 id2label=self.id2label,
                 label2id=self.label2id,
             )
         self.model = self.model.to(self.device)
+        self.model = torch.compile(self.model)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
         self.url_loader = HTMLFetcher()
 
@@ -114,7 +113,7 @@ class LoginFieldDetector:
                 inputs.extend(tokens)
                 labels.extend(token_labels)
             except Exception as e:
-                print(f"Error processing {url}: {e}")
+                log.warning(f"Error processing {url}: {e}")
 
         # Balance and filter inputs, labels, and bounding boxes
         return self._filter_unlabeled_labels(inputs, labels, o_label_ratio)
@@ -139,7 +138,7 @@ class LoginFieldDetector:
 
         return filtered_inputs, filtered_labels
 
-    def train(self, urls, output_dir="fine_tuned_model", epochs=10, batch_size=8):
+    def train(self, urls, output_dir="html_field_detector", epochs=10, batch_size=16):
         """Train the model."""
         inputs, labels = self.process_urls(urls)
         dataset = self.create_dataset(inputs, labels)
@@ -152,6 +151,8 @@ class LoginFieldDetector:
             per_device_train_batch_size=batch_size,
             num_train_epochs=epochs,
             logging_dir="logs",
+            gradient_accumulation_steps=4,  # Accumulate gradient over 4 steps
+            remove_unused_columns=False,
             fp16=torch.cuda.is_available(),
         )
         trainer = WeightedTrainer(
@@ -163,7 +164,7 @@ class LoginFieldDetector:
             class_weights=class_weights,
             compute_metrics=compute_metrics,
         )
-        print("Starting training...")
+        log.info("Starting training...")
         trainer.train()
 
         # Save model and tokenizer
@@ -184,15 +185,13 @@ class LoginFieldDetector:
             full_weights[cls] = weight
         return torch.tensor(full_weights).to(self.device)
 
+    def predict(self, url, probability_threshold=0.9):
+        """Make predictions on new HTML content.
 
-    def predict(self, url, probability_threshold=0.5):
-        """
-        Make predictions on new HTML content, allowing multiple entries per label
-        above a specified probability threshold and sorted by probability.
+        Allowing multiple entries per label above a specified probability threshold and sorted by probability.
         """
         html_content = self.url_loader.fetch_html(url)
         tokens, _, xpaths = self.feature_extractor.get_features(html_content)
-
         # Tokenize the features
         encodings = self.tokenizer(
             tokens,
@@ -201,27 +200,21 @@ class LoginFieldDetector:
             max_length=512,  # Model's maximum input length
             return_tensors="pt",
         )
-
         # Move inputs to the model's device
         inputs = {key: value.to(self.device) for key, value in encodings.items()}
-
         # Perform inference
         with torch.no_grad():
             outputs = self.model(**inputs)
         logits = outputs.logits
-
         # Apply softmax to logits to get probabilities
         probabilities = F.softmax(logits, dim=-1)
-
         # Convert logits to predicted labels
         predicted_ids = torch.argmax(logits, dim=-1).tolist()
-
         # Group predictions by labels, filtering by probability threshold
         label_predictions = defaultdict(list)  # Use defaultdict for easier grouping
         for token, pred_id, prob_vector, xpath in zip(tokens, predicted_ids, probabilities, xpaths):
             label = self.id2label[pred_id]
             prob = prob_vector[pred_id].item()
-
             # Only include predictions above the probability threshold
             if prob >= probability_threshold:
                 label_predictions[label].append({
@@ -234,7 +227,6 @@ class LoginFieldDetector:
         for label, predictions in label_predictions.items():
             # Sort by probability (highest probability first)
             predictions.sort(key=lambda pred: pred["probability"], reverse=True)
-
             # Normalize probabilities
             total_prob = sum(pred["probability"] for pred in predictions)
             for pred in predictions:
@@ -302,7 +294,7 @@ class LoginFieldDetector:
         self.visualize_class_distribution(true_labels)
         self.plot_confusion_matrix(true_labels, predictions)
         # Generate the classification report
-        print(classification_report(
+        log.info(classification_report(
             true_labels,
             predictions,
             target_names=target_labels,
