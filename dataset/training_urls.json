@@ -509,7 +509,14 @@
   "https://www.gettyimages.com/sign-in",
   "https://id.trimble.com/ui/sign_in.html",
   "https://idp.corel.com/idp/profile/SAML2/POST/SSO?execution=e1s2",
-  "https://www.vrbo.com/login?enable_login=true"
+  "https://www.vrbo.com/login?enable_login=true",
+  "https://www.python.org/accounts/login/",
+  "https://anaconda.cloud/sign-in",
+  "https://login.teamviewer.com/LogOn",
+  "https://lucid.app/users/login",
+  "https://www.change.org/login_or_join",
+  "https://www.gofundme.com/sign-in",
+  "https://www.justgiving.com/sso"
 
 
 
