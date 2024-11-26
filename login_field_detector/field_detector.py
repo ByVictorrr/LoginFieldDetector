@@ -1,8 +1,10 @@
+import json
 from collections import Counter
 import torch
 import numpy as np
 import matplotlib.pyplot as plt
 from datasets import Dataset
+from torch import softmax
 from torch.nn import CrossEntropyLoss
 from transformers import (
     Trainer,
@@ -201,14 +203,15 @@ class LoginFieldDetector:
         with torch.no_grad():
             outputs = self.model(**inputs)
         logits = outputs.logits
-
+        # Apply softmax to logits to get probabilities
+        probabilities = softmax(logits, dim=-1)
         # Convert logits to predicted labels
         predicted_ids = torch.argmax(logits, dim=-1).tolist()
 
         # Generate predictions with corresponding xpaths
         return [
-            {"token": token, "predicted_label": self.id2label[pred], "xpath": xpath}
-            for token, pred, xpath in zip(tokens, predicted_ids, xpaths)
+            {"token": token, "predicted_label": self.id2label[pred], "xpath": xpath, "probability": prob}
+            for token, pred, prob, xpath in zip(tokens, predicted_ids, probabilities, xpaths)
         ]
 
     def visualize_class_distribution(self, labels):

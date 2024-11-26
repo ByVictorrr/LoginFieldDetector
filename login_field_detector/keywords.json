@@ -1,0 +1,35 @@
+{
+      "oauth_providers": [
+            "google",
+            "apple",
+            "facebook",
+            "microsoft",
+            "linkedin",
+            "github",
+            "gitlabs",
+            "bitbucket",
+            "twitter",
+            "amazon",
+            "yahoo",
+            "dropbox",
+            "slack",
+            "spotify",
+            "twitch",
+            "paypal",
+            "salesforce",
+            "reddit"
+      ],
+      "langs": [
+            "english",
+            "chinese",
+            "spanish",
+            "hindi",
+            "arabic",
+            "bengali",
+            "portuguese",
+            "russian",
+            "japanese",
+            "german",
+            "french"
+      ]
+}

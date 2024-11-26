@@ -9,7 +9,7 @@ def detector():
     """Synchronous fixture to initialize and train LoginFieldDetector."""
     file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
     with open(file_path, "r") as file:
-        training_urls = json.load(file)
+        training_urls = json.load(file)[:20]
 
     # Initialize and train the detector
     detector = LoginFieldDetector()

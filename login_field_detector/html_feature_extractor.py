@@ -15,6 +15,9 @@ def get_xpath(element):
     return "/" + "/".join(parts)
 
 
+with open(os.path.join(os.path.dirname(__file__), "keywords.json"), "r") as key_fp:
+    keywords = json.load(key_fp)
+
 # Label definitions
 LABELS = [
     "UNLABELED",
@@ -39,48 +42,100 @@ LABELS = [
     "COOKIE_POLICY",
     "IMPRINT"
 ]
-LANGUAGES = ['english', 'chinese', 'spanish', 'hindi', 'arabic', 'bengali', 'portuguese', 'russian', 'japanese', 'german', 'french']
 PATTERNS = {
-    "FORGOT_PASSWORD": re.compile(r"(forgot (?:password|account)|reset password|can't access|retrieve)", re.IGNORECASE),
-    "ADVERTISEMENTS": re.compile(r"(ad|advertisement|promo|sponsored|ads by|learn more|check out)", re.IGNORECASE),
-    "NAVIGATION_LINK": re.compile(r"(home|back|next|previous|menu|navigate|main page|show more|view)", re.IGNORECASE),
-    "HELP_LINK": re.compile(r"(help|support|faq|contact us|need assistance)", re.IGNORECASE),
-    "LANGUAGE_SWITCH": re.compile(fr"({'|'.join(LANGUAGES)})", re.IGNORECASE),
-    "SIGN_UP": re.compile(r"(sign up|register|create account|join now|get started)", re.IGNORECASE),
-    "REMEMBER_ME": re.compile(r"(remember me|stay signed in|keep me logged in)", re.IGNORECASE),
-    "PRIVACY_POLICY": re.compile(r"(privacy policy|data protection|terms of privacy|gdpr)", re.IGNORECASE),
-    "TERMS_OF_SERVICE": re.compile(r"(terms of service|terms and conditions|user agreement)", re.IGNORECASE),
-    "BANNER": re.compile(r"(banner|announcement|alert|header|promotion)", re.IGNORECASE),
-    "COOKIE_POLICY": re.compile(r"(cookie policy|cookies|tracking policy|data usage)", re.IGNORECASE),
-    "IMPRINT": re.compile(r"(imprint|legal notice|about us|company details|contact info)", re.IGNORECASE),
-    # important
-    "USERNAME": re.compile(r"(email|e-mail|phone|user|username|id|identifier)", re.IGNORECASE),
-    "PHONE_NUMBER": re.compile(r"(phone|mobile|contact number|cell)", re.IGNORECASE),
-    "PASSWORD": re.compile(r"(pass|password|pwd|secret|key|pin|phrase)", re.IGNORECASE),
-    "LOGIN_BUTTON": re.compile(r"(login|log in|sign in|access|proceed|continue|submit|sign-on)", re.IGNORECASE),
-    "CAPTCHA": re.compile(r"(captcha|i'm not a robot|security check|verify)", re.IGNORECASE),
-    "SOCIAL_LOGIN_BUTTONS": re.compile(r"(login with|sign in with|connect with|continue with)", re.IGNORECASE),
-    "TWO_FACTOR_AUTH": re.compile(r"(2fa|authenticator|verification code|token|one-time code)", re.IGNORECASE),
-
-
+    "FORGOT_PASSWORD": re.compile(
+        r"(forgot (?:password|account)|reset password|can't access|retrieve|trouble signing in|recover your account)",
+        re.IGNORECASE
+    ),
+    "ADVERTISEMENTS": re.compile(
+        r"(ad|advertisement|promo|sponsored|ads by|learn more|check out|special offer|deal)",
+        re.IGNORECASE
+    ),
+    "NAVIGATION_LINK": re.compile(
+        r"(home|back|next|previous|menu|navigate|main page|show more|view|dashboard|explore)",
+        re.IGNORECASE
+    ),
+    "HELP_LINK": re.compile(
+        r"(help|support|faq|contact us|need assistance|get help|troubleshoot|customer service)",
+        re.IGNORECASE
+    ),
+    "LANGUAGE_SWITCH": re.compile(
+        fr"({'|'.join([lang for lang in keywords['langs']])})", re.IGNORECASE
+    ),
+    "SIGN_UP": re.compile(
+        r"(sign up|register|create account|join now|get started|new here|enroll|begin)",
+        re.IGNORECASE
+    ),
+    "REMEMBER_ME": re.compile(
+        r"(remember me|stay signed in|keep me logged in|remember login|save session)",
+        re.IGNORECASE
+    ),
+    "PRIVACY_POLICY": re.compile(
+        r"(privacy policy|data protection|terms of privacy|gdpr|your privacy|privacy settings)",
+        re.IGNORECASE
+    ),
+    "TERMS_OF_SERVICE": re.compile(
+        r"(terms of service|terms and conditions|user agreement|tos|terms of use)",
+        re.IGNORECASE
+    ),
+    "BANNER": re.compile(
+        r"(banner|announcement|alert|header|promotion|notification|pop-up|headline)",
+        re.IGNORECASE
+    ),
+    "COOKIE_POLICY": re.compile(
+        r"(cookie policy|cookies|tracking policy|data usage|we use cookies|accept cookies)",
+        re.IGNORECASE
+    ),
+    "IMPRINT": re.compile(
+        r"(imprint|legal notice|about us|company details|contact info|disclaimer|company profile)",
+        re.IGNORECASE
+    ),
+    # Important
+    "USERNAME": re.compile(
+        r"(email|e-mail|phone|user|username|id|identifier|login name|account name|handle)",
+        re.IGNORECASE
+    ),
+    "PHONE_NUMBER": re.compile(
+        r"(phone|mobile|contact number|cell|telephone|call us)",
+        re.IGNORECASE
+    ),
+    "PASSWORD": re.compile(
+        r"(pass|password|pwd|secret|key|pin|phrase|access code|security word)",
+        re.IGNORECASE
+    ),
+    "LOGIN_BUTTON": re.compile(
+        r"(login|log in|sign in|access|proceed|continue|submit|sign-on|enter|go)",
+        re.IGNORECASE
+    ),
+    "CAPTCHA": re.compile(
+        r"(captcha|i'm not a robot|security check|verify|prove you're human|challenge|reCAPTCHA)",
+        re.IGNORECASE
+    ),
+    "SOCIAL_LOGIN_BUTTONS": re.compile(
+        fr"({'|'.join([provider for provider in keywords['oauth_providers']])}|login with|sign in with|connect with|continue with)",
+        re.IGNORECASE
+    ),
+    "TWO_FACTOR_AUTH": re.compile(
+        r"(2fa|authenticator|verification code|token|one-time code|security key|two-step verification|otp)",
+        re.IGNORECASE
+    ),
 }
 
 
 def preprocess_field(tag):
-    """Preprocess an HTML token to combine text, parent, sibling, and metadata."""
+    """Preprocess an HTML token to include text, parent, sibling, and metadata."""
     text = tag.get_text(strip=True).lower()
-    # Sort and process metadata attributes
-    sorted_metadata = {
-        k: " ".join(sorted(v)) if isinstance(v, list) else str(v)
-        for k, v in sorted(tag.attrs.items())
-    }
+    parent_text = tag.parent.get_text(strip=True).lower() if tag.parent else ""
+    prev_sibling_text = tag.find_previous_sibling().get_text(strip=True).lower() if tag.find_previous_sibling() else ""
+    next_sibling_text = tag.find_next_sibling().get_text(strip=True).lower() if tag.find_next_sibling() else ""
+
+    # Collect metadata
+    sorted_metadata = {k: " ".join(sorted(v)) if isinstance(v, list) else str(v) for k, v in tag.attrs.items()}
     metadata_str = " ".join(f"[{k.upper()}:{v}]" for k, v in sorted_metadata.items())
-    # Extract parent tag and sibling information
-    parent_tag = f"[PARENT:{tag.parent.name}]" if tag.parent else "[PARENT:NONE]"
-    previous_sibling = f"[PREV_SIBLING:{tag.find_previous_sibling().name}]" if tag.find_previous_sibling() else "[PREV_SIBLING:NONE]"
-    next_sibling = f"[NEXT_SIBLING:{tag.find_next_sibling().name}]" if tag.find_next_sibling() else "[NEXT_SIBLING:NONE]"
-    # Combine all into a single string
-    return f"[TAG:{tag.name}] {f'[TEXT:{text}]' if text else ''} {parent_tag} {previous_sibling} {next_sibling} {metadata_str}"
+
+    # Combine fields
+    return f"[TAG:{tag.name}] [TEXT:{text}] [PARENT:{parent_text}] [PREV_SIBLING:{prev_sibling_text}] " \
+           f"[NEXT_SIBLING:{next_sibling_text}] {metadata_str}"
 
 
 def determine_label(tag):
@@ -114,7 +169,7 @@ class HTMLFeatureExtractor:
         """Initialize the extractor with label mappings and optional OAuth providers."""
         self.label2id = label2id
         if not oauth_providers:
-            oauth_file = os.path.join(os.path.dirname(__file__), "oauth_providers.json")
+            oauth_file = os.path.join(os.path.dirname(__file__), "keywords.json")
             with open(oauth_file, "r") as flp:
                 oauth_providers = json.load(flp)
         self.oauth_providers = oauth_providers
