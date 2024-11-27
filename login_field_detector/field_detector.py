@@ -1,5 +1,7 @@
-import logging
+import importlib
 import json
+import logging
+import os.path
 from collections import Counter, defaultdict
 import torch
 import numpy as np
@@ -75,8 +77,9 @@ class LoginFieldDetector:
                 id2label=self.id2label,
                 label2id=self.label2id,
             )
+        self.urls_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
         self.model = self.model.to(self.device)
-        self.model = torch.compile(self.model)
+        # self.model = torch.compile(self.model)
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
         self.url_loader = HTMLFetcher()
 
@@ -134,8 +137,11 @@ class LoginFieldDetector:
 
         return filtered_inputs, filtered_labels
 
-    def train(self, urls, output_dir="html_field_detector", epochs=10, batch_size=16):
+    def train(self, urls=None, output_dir="html_field_detector", epochs=10, batch_size=16):
         """Train the model."""
+        if not urls:
+            with open(self.urls_path, "r") as flp:
+                urls = json.load(flp)
         inputs, labels = self.process_urls(urls)
         dataset = self.create_dataset(inputs, labels)
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
@@ -144,7 +150,7 @@ class LoginFieldDetector:
             output_dir=output_dir,
             evaluation_strategy="steps",
             eval_steps=500,
-            # logging_steps=100,
+            logging_steps=100,
             save_strategy="steps",
             save_steps=500,
             per_device_train_batch_size=batch_size,
@@ -167,8 +173,9 @@ class LoginFieldDetector:
         trainer.train(resume_from_checkpoint=True)
 
         # Save model and tokenizer
-        trainer.save_model(output_dir)
-        self.tokenizer.save_pretrained(output_dir)
+        log.info("Saving model and tokenizer...")
+        self.model.save_pretrained(output_dir)  # Save model weights
+        self.tokenizer.save_pretrained(output_dir)  # Save tokenizer
         self.evaluate(val_dataset)
 
     def _compute_class_weights(self, labels):

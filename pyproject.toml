@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "html_field_detector"
+version = "0.1.0"
+description = "A library for detecting login fields in HTML using DistilBERT."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Your Name", email = "your_email@example.com"}]
+homepage = "https://github.com/yourusername/html_field_detector"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+dynamic = ["dependencies"]
+[tool.setuptools.package-data]
+"login_field_detector" = ["../dataset/training_urls.json"]
