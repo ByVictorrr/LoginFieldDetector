@@ -1,7 +1,31 @@
+import logging
 import os
 import re
 import json
 from bs4 import BeautifulSoup
+from babel import Locale
+
+log = logging.getLogger(__file__)
+
+
+def get_langs():
+    """Retrieves a list of all languages with their English and native names using Babel."""
+    languages = []
+    for code in Locale("en").languages.keys():
+        try:
+            locale = Locale.parse(code)
+            name = locale.get_display_name("en").lower()
+            native = locale.get_display_name(code).lower()
+            if name == native:
+                languages.append(name)
+            else:
+                languages.extend([name, native])
+        except Exception as e:
+            log.error(f"Error processing language code '{code}': {e}")
+    return languages
+
+
+langs = get_langs()
 
 
 def get_xpath(element):
@@ -18,7 +42,6 @@ def get_xpath(element):
 with open(os.path.join(os.path.dirname(__file__), "keywords.json"), "r") as key_fp:
     keywords = json.load(key_fp)
 
-
 LABELS = keywords["labels"]
 PATTERNS = {
     "FORGOT_PASSWORD": re.compile(
@@ -30,16 +53,18 @@ PATTERNS = {
         re.IGNORECASE
     ),
     "NAVIGATION_LINK": re.compile(
-        r"(home|back|next|previous|menu|navigate|main page|show more|view|dashboard|explore)",
+        r"\b(home|back|next|previous|main\s*menu|navigation|navigate|main\s*page|show more|view details|dashboard|explore site)\b",
         re.IGNORECASE
     ),
+
     "HELP_LINK": re.compile(
         r"(help|support|faq|contact us|need assistance|get help|troubleshoot|customer service)",
         re.IGNORECASE
     ),
     "LANGUAGE_SWITCH": re.compile(
-        fr"({'|'.join([lang for lang in keywords['langs']])})", re.IGNORECASE
+        fr"(\b({'|'.join([re.escape(lang) for lang in langs])})\b)", re.IGNORECASE
     ),
+
     "SIGN_UP": re.compile(
         r"(sign up|register|create account|join now|get started|new here|enroll|begin)",
         re.IGNORECASE
@@ -69,8 +94,12 @@ PATTERNS = {
         re.IGNORECASE
     ),
     # Important
+    "LOGIN_BUTTON": re.compile(
+        r"(log\s*in|sign\s*in|sign\s*on|access account|proceed to login|continue to login|submit credentials|enter account|login now)",
+        re.IGNORECASE
+    ),
     "USERNAME": re.compile(
-        r"(email|e-mail|phone|user|username|id|identifier|login name|account name|handle)",
+        r"(e-?mail|phone|user(?:name)?|login(?: name)?|account(?: name)?|(?:account\s)?identifier|profile name)",
         re.IGNORECASE
     ),
     "PHONE_NUMBER": re.compile(
@@ -81,16 +110,13 @@ PATTERNS = {
         r"(pass|password|pwd|secret|key|pin|phrase|access code|security word)",
         re.IGNORECASE
     ),
-    "LOGIN_BUTTON": re.compile(
-        r"(login|log in|sign in|access|proceed|continue|submit|sign-on|enter|go)",
-        re.IGNORECASE
-    ),
+
     "CAPTCHA": re.compile(
         r"(captcha|i'm not a robot|security check|verify|prove you're human|challenge|reCAPTCHA)",
         re.IGNORECASE
     ),
     "SOCIAL_LOGIN_BUTTONS": re.compile(
-        fr"({'|'.join([provider for provider in keywords['oauth_providers']])}|login with|sign in with|connect with|continue with)",
+        fr"(login with|sign in with|connect with|continue with|authenticate with)\s+({'|'.join(keywords['oauth_providers'])})",
         re.IGNORECASE
     ),
     "TWO_FACTOR_AUTH": re.compile(

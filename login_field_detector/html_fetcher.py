@@ -1,4 +1,6 @@
 import logging
+import random
+import time
 import requests
 import hashlib
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -44,7 +46,7 @@ class HTMLFetcher:
         })
         return scraper
 
-    @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(5))
+    @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(2))
     def fetch_html(self, url):
         if cached_content := self.cache.get(url):
             log.info(f"Using cached HTML for {url}")
@@ -58,15 +60,19 @@ class HTMLFetcher:
             html = response.text
             self.cache.set(url, html)
             return html
-        except requests.exceptions.SSLError as e:
-            log.warning(f"SSL error for {url}: {e}")
-            raise  # Re-raise to trigger retry
-        except requests.exceptions.TooManyRedirects as e:
-            log.warning(f"Too many redirects for {url}: {e}")
-            raise  # Re-raise to trigger retry
+        except requests.exceptions.HTTPError as e:
+            if e.response.status_code == 403:
+                log.warning(f"403 Forbidden. Retrying with different headers for {url}.")
+                scraper.headers.update({"Referer": "https://www.bing.com"})  # Change referer
+                response = scraper.get(url, timeout=20, allow_redirects=True)
+                response.raise_for_status()
+                html = response.text
+                self.cache.set(url, html)
+                return html
+            raise
         except Exception as e:
             log.warning(f"General error fetching {url}: {e}")
-            raise  # Re-raise to trigger retry
+            raise
 
     def fetch_all(self, urls):
         results = {}
@@ -79,8 +85,8 @@ class HTMLFetcher:
                         results[url] = html
                 except RetryError as retry_error:
                     original_exception = retry_error.last_attempt.exception()
-                    log.warning(
-                        f"RetryError for {url}: {retry_error}. Original exception: {original_exception}")
+                    log.warning(f"RetryError for {url}: {retry_error}. Original exception: {original_exception}")
                 except Exception as e:
                     log.warning(f"Error processing {url}: {e}.")
+                time.sleep(random.uniform(1, 5))  # Random delay
         return results

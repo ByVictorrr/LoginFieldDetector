@@ -21,15 +21,11 @@ from .html_fetcher import HTMLFetcher
 log = logging.getLogger(__name__)
 
 
-# Utility Functions
 def compute_metrics(pred):
-    """Calculate evaluation metrics."""
     labels = pred.label_ids
     preds = pred.predictions.argmax(-1)
-    valid_mask = labels != -100
-    labels_flat = labels[valid_mask]
-    preds_flat = preds[valid_mask]
-    return {"accuracy": accuracy_score(labels_flat, preds_flat)}
+    accuracy = accuracy_score(labels, preds)
+    return {"accuracy": accuracy}
 
 
 class WeightedTrainer(Trainer):
@@ -148,7 +144,7 @@ class LoginFieldDetector:
             output_dir=output_dir,
             evaluation_strategy="steps",
             eval_steps=500,
-            logging_steps=100,
+            # logging_steps=100,
             save_strategy="steps",
             save_steps=500,
             per_device_train_batch_size=batch_size,
@@ -168,7 +164,7 @@ class LoginFieldDetector:
             compute_metrics=compute_metrics,
         )
         log.info("Starting training...")
-        trainer.train()
+        trainer.train(resume_from_checkpoint=True)
 
         # Save model and tokenizer
         trainer.save_model(output_dir)
@@ -196,6 +192,8 @@ class LoginFieldDetector:
         html_content = self.url_loader.fetch_html(url)
         tokens, _, xpaths = self.feature_extractor.get_features(html_content)
         # Tokenize the features
+        if not tokens:
+            return []
         encodings = self.tokenizer(
             tokens,
             truncation=True,

@@ -30,7 +30,12 @@
             "russian",
             "japanese",
             "german",
-            "french"
+            "french",
+            "italiano",
+            "한국어",
+            "deutsch",
+            "हिन्दी",
+            "日本語]"
       ],
       "labels": [
           "UNLABELED",

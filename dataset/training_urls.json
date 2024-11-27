@@ -543,8 +543,10 @@
   "https://login.techcrunch.com/",
   "https://www.wired.com/auth/initiate",
   "https://sourceforge.net/auth/",
-
-
-
+  "https://login.siteground.com/login?lang=en",
+  "https://ground.news/login",
+  "https://www.bluehost.com/my-account/login",
+  "https://login.bigcommerce.com/login/",
+  "https://account.microcenter.com/auth/signin"
 
 ]
