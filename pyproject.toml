@@ -44,7 +44,6 @@ gpu = [
     "torch==2.5.1+cu118",
     "torchvision==0.16.1+cu118",
     "torchaudio==2.5.1+cu118",
-    "-f https://download.pytorch.org/whl/cu118",
 ]
 [project.urls]
 homepage = "https://github.com/ByVictorrr"

@@ -18,7 +18,7 @@ jobs:
       - name: Install dependencies
         run: |
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
-          pip install .[gpu]
+          pip install .[gpu] -f https://download.pytorch.org/whl/cu118
 
       - name: Train the model
         run: |
