@@ -29,11 +29,11 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install huggingface_hub
 
       - name: Train the model
         run: |
-          python -m login_field_detector.field_detector
+          python -m login_field_detector.field_detector --logging INFO
+
 
       - name: Upload Model to Hugging Face
         env:
