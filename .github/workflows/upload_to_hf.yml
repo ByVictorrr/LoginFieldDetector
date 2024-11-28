@@ -32,7 +32,7 @@ jobs:
 
       - name: Train the model
         run: |
-          python -m login_field_detector.field_detector --logging INFO
+          PYTHONLOGGING=INFO python -m login_field_detector.field_detector
 
 
       - name: Upload Model to Hugging Face
