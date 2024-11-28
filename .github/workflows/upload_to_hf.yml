@@ -13,6 +13,15 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set Proxy Environment Variables and Test
+        run: |
+          export http_proxy=http://104.207.36.245:3128
+          export https_proxy=http://104.207.36.245:3128
+          echo "Proxy environment variables set."
+
+          # Test the proxy with verbose output
+          curl -v -I https://facebook.com/login || exit 1
+
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
