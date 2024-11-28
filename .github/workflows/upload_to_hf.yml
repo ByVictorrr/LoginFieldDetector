@@ -25,7 +25,8 @@ jobs:
 
       - name: Train the model
         run: |
-          python login_field_detector/field_detector.py
+          python -m login_field_detector.field_detector
+
 
       - name: Upload Model to Hugging Face
         env:
