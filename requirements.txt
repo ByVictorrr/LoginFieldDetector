@@ -16,4 +16,5 @@ tensorboard
 -f https://download.pytorch.org/whl/cu118
 torchvision
 torchaudio
+huggingface_hub
 pytest

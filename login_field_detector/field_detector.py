@@ -341,3 +341,4 @@ class LoginFieldDetector:
 
 if __name__ == "__main__":
     detector = LoginFieldDetector()
+    detector.train(output_dir=os.path.join(os.path.dirname(os.path.dirname(__file__)), "model"))
