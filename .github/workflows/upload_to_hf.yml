@@ -13,7 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-
       - name: Install dependencies
         run: |
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
@@ -37,7 +36,7 @@ jobs:
           # Get Hugging Face token
           hf_token = os.getenv('HF_TOKEN')
           if not hf_token:
-	        raise ValueError('HF_TOKEN environment variable is not set.')
+          raise ValueError('HF_TOKEN environment variable is not set.')
 
           # Initialize the API
           api = HfApi()
