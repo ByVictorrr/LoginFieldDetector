@@ -8,9 +8,9 @@ def download_model_files():
     """
     model_dir = "downloaded_model"
     repo_id = "byvictorrr/html-login-field-detector"
-    model_file = hf_hub_download(repo_id=repo_id, filename="pytorch_model.bin",
-                                 cache_dir=model_dir)
-    config_file = hf_hub_download(repo_id=repo_id, filename="config.json", cache_dir=model_dir)
-    tokenizer_file = hf_hub_download(repo_id=repo_id, filename="tokenizer.json",
-                                     cache_dir=model_dir)
+    # Update the file name to model.safetensors
+    hf_hub_download(repo_id=repo_id, filename="model.safetensors", cache_dir=model_dir)
+    hf_hub_download(repo_id=repo_id, filename="config.json", cache_dir=model_dir)
+    hf_hub_download(repo_id=repo_id, filename="tokenizer.json", cache_dir=model_dir)
     return model_dir
+

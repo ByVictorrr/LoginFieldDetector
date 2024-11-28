@@ -73,6 +73,7 @@ class LoginFieldDetector:
                 num_labels=len(self.labels),
                 id2label=self.id2label,
                 label2id=self.label2id,
+                from_safetensors=True  # Add this argument to load SafeTensors
             )
         except Exception as e:
             log.warning(f"Warning: {model_dir} not found or invalid. Using 'distilbert-base-uncased' as default. "
