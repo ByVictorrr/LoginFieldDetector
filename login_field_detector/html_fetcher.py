@@ -51,14 +51,13 @@ class HTMLFetcher:
         :return: HTML content as a string.
         :raises requests.exceptions.RequestException: If the fetch fails.
         """
-        if not force:
-            if url in self.failed_url_cache:
-                log.warning(f"Skipping previously failed URL: {url}")
-                return None
+        if not force and url in self.failed_url_cache:
+            log.warning(f"Skipping previously failed URL: {url}")
+            return None
 
-            if url in self.cache:
-                log.info(f"Using cached HTML for {url}")
-                return self.cache[url]
+        if not force and url in self.cache:
+            log.info(f"Using cached HTML for {url}")
+            return self.cache[url]
 
         log.info(f"Fetching HTML for {url} {'with scraper' if use_scraper else 'with requests'}")
         scraper = self.create_scraper() if use_scraper else requests
@@ -71,8 +70,7 @@ class HTMLFetcher:
             return html_content
         except requests.exceptions.RequestException as e:
             log.warning(f"Failed to fetch {url}: {e}")
-            if not force:
-                self.failed_url_cache.set(url, "failed", expire=self.ttl)  # Mark as failed with TTL
+            self.failed_url_cache.set(url, "failed", expire=self.ttl)  # Mark as failed with TTL
             raise
 
     def fetch_all(self, urls, force=False):
