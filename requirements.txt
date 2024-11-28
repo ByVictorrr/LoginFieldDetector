@@ -1,7 +1,6 @@
 transformers
 datasets
 bs4
-torch
 accelerate
 lxml
 lxml_html_clean
@@ -15,6 +14,7 @@ fake-useragent
 diskcache
 tensorboard
 -f https://download.pytorch.org/whl/cu118
+torch
 torchvision
 torchaudio
 huggingface_hub
