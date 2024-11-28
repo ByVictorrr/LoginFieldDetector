@@ -13,10 +13,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Activate Virtual Environment
-        run: |
-          source ~/.virtualenvs/LoginFieldDetector/bin/activate
-
       - name: Cache dependencies
         uses: actions/cache@v3
         with:
@@ -28,10 +24,12 @@ jobs:
 
       - name: Install dependencies
         run: |
+          source ~/.virtualenvs/LoginFieldDetector/bin/activate
           pip install -r requirements.txt
 
       - name: Train the model
         run: |
+          source ~/.virtualenvs/LoginFieldDetector/bin/activate
           PYTHONLOGGING=INFO python -m login_field_detector.field_detector
 
 
@@ -39,6 +37,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
         run: |
+          source ~/.virtualenvs/LoginFieldDetector/bin/activate
           python -c "
           from huggingface_hub import Repository
           repo = Repository(local_dir='model', repo_id='byvictorrr/html-login-field-detector', token='${{ secrets.HF_TOKEN }}')
