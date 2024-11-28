@@ -13,6 +13,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Cache dependencies
+        uses: actions/cache@v3
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
       - name: Set up Python
         uses: actions/setup-python@v4
         with:
@@ -26,7 +34,6 @@ jobs:
       - name: Train the model
         run: |
           python -m login_field_detector.field_detector
-
 
       - name: Upload Model to Hugging Face
         env:

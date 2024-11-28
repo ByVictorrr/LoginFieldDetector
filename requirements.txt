@@ -7,6 +7,7 @@ lxml
 lxml_html_clean
 scikit-learn
 matplotlib
+babel
 requests
 cloudscraper
 fake-useragent
