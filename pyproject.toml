@@ -9,8 +9,8 @@ description = "A library for detecting login fields in HTML using DistilBERT."
 readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
-authors = [{name = "Your Name", email = "your_email@example.com"}]
-homepage = "https://github.com/yourusername/html_field_detector"
+authors = [{name = "Victor Delaplaine", email = "vdelaplainess@gmail.com"}]
+homepage = "https://github.com/byvictorrr/"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
@@ -19,3 +19,4 @@ classifiers = [
 dynamic = ["dependencies"]
 [tool.setuptools.package-data]
 "login_field_detector" = ["../dataset/training_urls.json"]
+

@@ -1,41 +1,32 @@
 import logging
-import random
 import time
+import random
 import requests
-import hashlib
+from diskcache import Cache
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import cloudscraper
 from fake_useragent import UserAgent
-import redis
-from tenacity import retry, wait_exponential, stop_after_attempt, RetryError
+from tenacity import retry, wait_exponential, stop_after_attempt
 
-log = logging.getLogger(__file__)
-
-
-class RedisDatasetCache:
-    def __init__(self, redis_host="localhost", redis_port=6379, redis_db=0, ttl_seconds=24 * 3600):
-        self.redis = redis.StrictRedis(host=redis_host, port=redis_port, db=redis_db, decode_responses=True)
-        self.ttl_seconds = ttl_seconds
-
-    def get(self, url):
-        cache_key = self._generate_cache_key(url)
-        return self.redis.get(cache_key)
-
-    def set(self, url, content):
-        cache_key = self._generate_cache_key(url)
-        self.redis.setex(cache_key, self.ttl_seconds, content)
-
-    def _generate_cache_key(self, url):
-        return hashlib.md5(url.encode()).hexdigest()
+log = logging.getLogger(__name__)
 
 
 class HTMLFetcher:
-    def __init__(self, cache=None, max_workers=10):
-        self.cache = cache or RedisDatasetCache()
+    def __init__(self, cache_dir='./html_cache', ttl=7 * 24 * 3600, max_workers=10):
+        """HTMLFetcher for downloading HTML content with caching and retry support.
+
+        :param cache_dir: Directory for persistent cache storage.
+        :param ttl: Time-to-live (in seconds) for the cache.
+        :param max_workers: Number of concurrent threads for fetching.
+        """
+        self.cache = Cache(cache_dir)  # Persistent cache for successful fetches
+        self.failed_url_cache = Cache(f"{cache_dir}/failed_urls")  # Persistent cache for failed URLs
+        self.ttl = ttl
         self.max_workers = max_workers
         self.user_agent = UserAgent()
 
     def create_scraper(self):
+        """Create a Cloudscraper instance for handling anti-bot challenges."""
         scraper = cloudscraper.create_scraper(
             browser={"custom": self.user_agent.random}
         )
@@ -46,47 +37,64 @@ class HTMLFetcher:
         })
         return scraper
 
-    @retry(wait=wait_exponential(multiplier=1, min=4, max=30), stop=stop_after_attempt(2))
-    def fetch_html(self, url):
-        if cached_content := self.cache.get(url):
-            log.info(f"Using cached HTML for {url}")
-            return cached_content
+    @retry(
+        stop=stop_after_attempt(3),
+        wait=wait_exponential(multiplier=1, min=1, max=10),
+        reraise=True,
+    )
+    def fetch_html(self, url, force=False, use_scraper=False):
+        """Fetch HTML content for a given URL with retry support.
 
-        log.info(f"Fetching HTML for {url}")
-        scraper = self.create_scraper()
+        :param url: URL to fetch.
+        :param force: Force fetching even if cached or marked as failed.
+        :param use_scraper: Whether to use Cloudscraper for fetching.
+        :return: HTML content as a string.
+        :raises requests.exceptions.RequestException: If the fetch fails.
+        """
+        if not force:
+            if url in self.failed_url_cache:
+                log.warning(f"Skipping previously failed URL: {url}")
+                return None
+
+            if url in self.cache:
+                log.info(f"Using cached HTML for {url}")
+                return self.cache[url]
+
+        log.info(f"Fetching HTML for {url} {'with scraper' if use_scraper else 'with requests'}")
+        scraper = self.create_scraper() if use_scraper else requests
+
         try:
             response = scraper.get(url, timeout=20, allow_redirects=True)
             response.raise_for_status()
-            html = response.text
-            self.cache.set(url, html)
-            return html
-        except requests.exceptions.HTTPError as e:
-            if e.response.status_code == 403:
-                log.warning(f"403 Forbidden. Retrying with different headers for {url}.")
-                scraper.headers.update({"Referer": "https://www.bing.com"})  # Change referer
-                response = scraper.get(url, timeout=20, allow_redirects=True)
-                response.raise_for_status()
-                html = response.text
-                self.cache.set(url, html)
-                return html
-            raise
-        except Exception as e:
-            log.warning(f"General error fetching {url}: {e}")
+            html_content = response.text
+            self.cache.set(url, html_content, expire=self.ttl)  # Cache successful fetch
+            return html_content
+        except requests.exceptions.RequestException as e:
+            log.warning(f"Failed to fetch {url}: {e}")
+            if not force:
+                self.failed_url_cache.set(url, "failed", expire=self.ttl)  # Mark as failed with TTL
             raise
 
-    def fetch_all(self, urls):
+    def fetch_all(self, urls, force=False):
+        """Fetch HTML content for multiple URLs concurrently.
+
+        :param urls: List of URLs to fetch.
+        :param force: Force fetching even if URLs are cached or marked as failed.
+        :return: A dictionary mapping URLs to their HTML content.
+        """
         results = {}
         with ThreadPoolExecutor(max_workers=self.max_workers) as executor:
-            future_to_url = {executor.submit(self.fetch_html, url): url for url in urls}
+            future_to_url = {
+                executor.submit(self.fetch_html, url, force): url
+                for url in urls if force or url not in self.failed_url_cache
+            }
             for future in as_completed(future_to_url):
                 url = future_to_url[future]
                 try:
-                    if html := future.result():
-                        results[url] = html
-                except RetryError as retry_error:
-                    original_exception = retry_error.last_attempt.exception()
-                    log.warning(f"RetryError for {url}: {retry_error}. Original exception: {original_exception}")
-                except Exception as e:
-                    log.warning(f"Error processing {url}: {e}.")
-                time.sleep(random.uniform(1, 5))  # Random delay
+                    html_content = future.result()
+                    if html_content:
+                        results[url] = html_content
+                except requests.exceptions.RequestException:
+                    log.warning(f"Error fetching {url}")
+                time.sleep(random.uniform(1, 3))  # Random delay to avoid rate-limiting
         return results

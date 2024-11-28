@@ -1,7 +1,7 @@
-import importlib
 import json
 import logging
 import os.path
+import time
 from collections import Counter, defaultdict
 import torch
 import numpy as np
@@ -9,6 +9,7 @@ import matplotlib.pyplot as plt
 from datasets import Dataset
 from torch.nn import CrossEntropyLoss
 import torch.nn.functional as F
+from torch.utils.tensorboard import SummaryWriter
 from transformers import (
     Trainer,
     TrainingArguments,
@@ -80,6 +81,7 @@ class LoginFieldDetector:
         self.urls_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
         self.model = self.model.to(self.device)
         # self.model = torch.compile(self.model)
+        self.writer = SummaryWriter(log_dir="logs")
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
         self.url_loader = HTMLFetcher()
 
@@ -99,22 +101,25 @@ class LoginFieldDetector:
         }
         return Dataset.from_dict(data)
 
-    def process_urls(self, urls, o_label_ratio=0.5):
-        """Preprocess, balance data, and include bounding boxes."""
+    def process_urls(self, urls, force=False, o_label_ratio=0.5):
+        """
+        Preprocess, balance data, and include bounding boxes.
+
+        :param urls: List of URLs to process.
+        :param force: Force re-fetching all URLs.
+        :param o_label_ratio: Ratio of 'UNLABELED' labels to retain.
+        :return: Filtered inputs and labels.
+        """
         inputs, labels = [], []
-        for url, text in self.url_loader.fetch_all(urls).items():
+        for url, text in self.url_loader.fetch_all(urls, force=force).items():
             try:
-                # Extract features including bounding boxes
                 tokens, token_labels, _ = self.feature_extractor.get_features(text)
                 assert len(tokens) == len(token_labels)
-
-                # Extend the inputs, labels, and bboxes
                 inputs.extend(tokens)
                 labels.extend(token_labels)
             except Exception as e:
                 log.warning(f"Error processing {url}: {e}")
 
-        # Balance and filter inputs, labels, and bounding boxes
         return self._filter_unlabeled_labels(inputs, labels, o_label_ratio)
 
     def _filter_unlabeled_labels(self, inputs, labels, ratio):
@@ -137,15 +142,29 @@ class LoginFieldDetector:
 
         return filtered_inputs, filtered_labels
 
-    def train(self, urls=None, output_dir="html_field_detector", epochs=10, batch_size=16):
-        """Train the model."""
+    def train(self, urls=None, output_dir="html_field_detector", epochs=10, batch_size=16, force=False):
+        """Train the model.
+
+        :param urls: List of URLs to fetch and process for training.
+        :param output_dir: Directory to save the trained model.
+        :param epochs: Number of training epochs.
+        :param batch_size: Batch size for training.
+        :param force: Force re-fetching and reprocessing all URLs.
+        """
+        start_time = time.time()
         if not urls:
             with open(self.urls_path, "r") as flp:
                 urls = json.load(flp)
-        inputs, labels = self.process_urls(urls)
+
+        log.info("Collecting data...")
+        inputs, labels = self.process_urls(urls, force=force)
+
+        log.info("Preparing datasets...")
         dataset = self.create_dataset(inputs, labels)
         train_dataset, val_dataset = dataset.train_test_split(test_size=0.2).values()
         class_weights = self._compute_class_weights(labels)
+
+        log.info("Starting training...")
         training_args = TrainingArguments(
             output_dir=output_dir,
             evaluation_strategy="steps",
@@ -169,8 +188,12 @@ class LoginFieldDetector:
             class_weights=class_weights,
             compute_metrics=compute_metrics,
         )
-        log.info("Starting training...")
-        trainer.train(resume_from_checkpoint=True)
+        trainer.train(resume_from_checkpoint=False if force else True)
+        # Log the time taken to TensorBoard
+        elapsed_time = time.time() - start_time
+        self.writer.add_scalar("Training/Time_Seconds", elapsed_time)
+        self.writer.close()
+        log.info(f"Training completed in {elapsed_time:.2f} seconds.")
 
         # Save model and tokenizer
         log.info("Saving model and tokenizer...")

@@ -1,5 +1,4 @@
 import os
-import json
 import pytest
 from login_field_detector import LoginFieldDetector
 
@@ -7,13 +6,8 @@ from login_field_detector import LoginFieldDetector
 @pytest.fixture(scope="session")
 def detector():
     """Synchronous fixture to initialize and train LoginFieldDetector."""
-    file_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
-    with open(file_path, "r") as file:
-        training_urls = json.load(file)
-
-    # Initialize and train the detector
     detector = LoginFieldDetector()
-    detector.train(urls=training_urls)  # Pass only HTML data
+    detector.train(force=bool(os.getenv("FORCE_TRAIN", "False")))  # Pass only HTML data
     return detector
 
 

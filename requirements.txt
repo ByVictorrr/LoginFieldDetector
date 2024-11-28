@@ -7,10 +7,12 @@ lxml
 lxml_html_clean
 scikit-learn
 matplotlib
+requests
 cloudscraper
 fake-useragent
 tenacity
-redis
+diskcache
+tensorboard
 -f https://download.pytorch.org/whl/cu118
 torchvision
 torchaudio
