@@ -6,7 +6,6 @@ from diskcache import Cache
 from concurrent.futures import ThreadPoolExecutor, as_completed
 import cloudscraper
 from fake_useragent import UserAgent
-from tenacity import retry, wait_exponential, stop_after_attempt
 
 log = logging.getLogger(__name__)
 
@@ -37,12 +36,7 @@ class HTMLFetcher:
         })
         return scraper
 
-    @retry(
-        stop=stop_after_attempt(3),
-        wait=wait_exponential(multiplier=1, min=1, max=10),
-        reraise=True,
-    )
-    def fetch_html(self, url, force=False, use_scraper=False):
+    def fetch_html(self, url, force=False, use_scraper=True):
         """Fetch HTML content for a given URL with retry support.
 
         :param url: URL to fetch.
