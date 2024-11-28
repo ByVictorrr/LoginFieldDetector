@@ -19,31 +19,32 @@ dependencies = [
     "transformers>=4.33.0",
     "datasets>=2.14.0",
     "beautifulsoup4>=4.11.0",
-    "lxml>=4.8.0",
-    "lxml_html_clean>=0.4.0",
+    "diskcache>=5.6.0",
+    "huggingface_hub>=0.15.0",
     "scikit-learn>=1.1.0",
     "matplotlib>=3.5.0",
-    "babel>=2.8.0",
-    "requests>=2.30.0",
+    "lxml>=4.8.0",
+    "lxml_html_clean>=0.4.0",
+    "fake-useragent>=1.5.0",
     "certifi>=2024.6.0",
     "cloudscraper>=1.2.0",
-    "fake-useragent>=1.5.0",
-    "diskcache>=5.6.0",
     "tensorboard>=2.17.0",
-    "huggingface_hub>=0.15.0",
-    # Default CPU-based PyTorch; users can opt into GPU through optional dependencies.
+    "babel>=2.8.0",
+]
+
+[project.optional-dependencies]
+cpu = [
     "torch>=2.0.0",
     "torchvision>=0.15.0",
     "torchaudio>=2.0.0",
 ]
 
-[project.optional-dependencies]
-test = ["pytest"]
 gpu = [
     "torch==2.5.1+cu118",
-    "torchvision==0.16.1+cu118",
-    "torchaudio==2.5.1+cu118",
+    "torchvision==0.20.1",
+    "torchaudio==2.5.1",
 ]
+test = ["pytest"]
 [project.urls]
 homepage = "https://github.com/ByVictorrr"
 repository = "https://github.com/ByVictorrr/LoginFieldDetector"
