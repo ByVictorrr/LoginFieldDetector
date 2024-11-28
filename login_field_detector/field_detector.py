@@ -220,12 +220,14 @@ class LoginFieldDetector:
             full_weights[cls] = weight
         return torch.tensor(full_weights).to(self.device)
 
-    def predict(self, url, probability_threshold=0.9):
+    def predict(self, url=None, html_content=None, probability_threshold=0.9):
         """Make predictions on new HTML content.
 
         Allowing multiple entries per label above a specified probability threshold and sorted by probability.
         """
-        html_content = self.url_loader.fetch_html(url)
+        if not url or not html_content:
+            raise ValueError(f"Need to pass {html_content=} or {url=}.")
+        html_content = self.url_loader.fetch_html(url) if url else html_content
         tokens, _, xpaths = self.feature_extractor.get_features(html_content)
         # Tokenize the features
         if not tokens:
