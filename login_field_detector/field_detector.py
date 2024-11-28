@@ -340,6 +340,13 @@ class LoginFieldDetector:
 
 
 if __name__ == "__main__":
+    # Get logging level from environment variable, default to WARNING
+    log_level = os.getenv("PYTHONLOGGING", "INFO")
+    # Configure logging
+    logging.basicConfig(
+        level=getattr(logging, log_level, logging.WARNING),
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
     output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model")
     detector = LoginFieldDetector(model_dir=output_dir)
     detector.train(output_dir=output_dir, force=True)
