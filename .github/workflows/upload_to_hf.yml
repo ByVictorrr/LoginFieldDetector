@@ -13,19 +13,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Cache dependencies
-        uses: actions/cache@v3
-        with:
-          path: ~/.cache/pip
-          key: ${{ runner.os }}-pip-${{ hashFiles('**/requirements.txt') }}
-          restore-keys: |
-            ${{ runner.os }}-pip-
 
 
       - name: Install dependencies
         run: |
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
-          pip install -r requirements.txt
+          pip install .[gpu]
 
       - name: Train the model
         run: |
