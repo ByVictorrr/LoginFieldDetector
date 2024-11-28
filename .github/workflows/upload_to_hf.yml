@@ -3,7 +3,7 @@ name: Upload Model to Hugging Face
 on:
   push:
     branches:
-      - dev  # Adjust to your main branch
+      - release  # Adjust to your main branch
 
 jobs:
   upload-to-hf:
@@ -12,7 +12,6 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
-
 
 
       - name: Install dependencies

@@ -1,10 +1,11 @@
 name: Publish Package to PyPI
 
 on:
-  push:
-    branches:
-      - release
-
+  workflow_run:
+    workflows:
+      - Upload Model to Hugging Face
+    types:
+      - success
 jobs:
   publish:
     runs-on: ubuntu-latest
