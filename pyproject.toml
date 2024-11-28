@@ -41,8 +41,8 @@ cpu = [
 
 gpu = [
     "torch==2.5.1+cu118",
-    "torchvision==0.20.1",
-    "torchaudio==2.5.1",
+    "torchvision==0.20.1+cu118",
+    "torchaudio==2.5.1+cu118",
 ]
 test = ["pytest"]
 [project.urls]
