@@ -10,13 +10,16 @@ readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "MIT"}
 authors = [{name = "Victor Delaplaine", email = "vdelaplainess@gmail.com"}]
-homepage = "https://github.com/byvictorrr/"
 classifiers = [
     "Programming Language :: Python :: 3",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
 dynamic = ["dependencies"]
+
+[project.urls]
+homepage = "https://github.com/ByVictorrr"
+repository = "https://github.com/ByVictorrr/LoginFieldDetector"
 
 [tool.setuptools]
 packages = ["login_field_detector"]
