@@ -1,0 +1,36 @@
+name: Upload Model to Hugging Face
+
+on:
+  push:
+    branches:
+      - main  # Adjust to your main branch
+
+jobs:
+  upload-to-hf:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+
+      - name: Install Hugging Face CLI
+        run: |
+          pip install huggingface_hub
+
+      - name: Upload Model to Hugging Face
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+        run: |
+          from huggingface_hub import Repository
+
+          repo = Repository(
+              local_dir="model_directory",  # Replace with your model directory
+              repo_id="your-username/your-model-name",
+              token=HF_TOKEN
+          )
+          repo.push_to_hub()

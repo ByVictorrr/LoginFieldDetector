@@ -18,6 +18,8 @@ from transformers import (
 )
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
+
+from login_field_detector.utils import download_model_files
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 from .html_fetcher import HTMLFetcher
 
@@ -52,7 +54,7 @@ class WeightedTrainer(Trainer):
 class LoginFieldDetector:
     """Model for login field detection using BERT."""
 
-    def __init__(self, model_dir=f"html_field_detector", labels=LABELS, device=None):
+    def __init__(self, model_dir=None, labels=LABELS, device=None):
         if not labels:
             raise ValueError("Labels must be provided to initialize the model.")
         self.labels = labels
@@ -60,6 +62,10 @@ class LoginFieldDetector:
         self.id2label = {i: label for label, i in self.label2id.items()}
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         log.info(f"Using device: {self.device}")
+        # Download model files if not provided
+        if model_dir is None:
+            log.info("Downloading model files from Hugging Face...")
+            model_dir = download_model_files()
         try:
             self.tokenizer = DistilBertTokenizerFast.from_pretrained(model_dir)
             self.model = DistilBertForSequenceClassification.from_pretrained(
