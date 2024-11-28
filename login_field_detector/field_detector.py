@@ -19,7 +19,7 @@ from transformers import (
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
 
-from login_field_detector.utils import download_model_files
+from .utils import download_model_files
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 from .html_fetcher import HTMLFetcher
 
@@ -340,5 +340,6 @@ class LoginFieldDetector:
 
 
 if __name__ == "__main__":
-    detector = LoginFieldDetector()
-    detector.train(output_dir=os.path.join(os.path.dirname(os.path.dirname(__file__)), "model"))
+    output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model")
+    detector = LoginFieldDetector(model_dir=output_dir)
+    detector.train(output_dir=output_dir)
