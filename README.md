@@ -1,199 +1,67 @@
-Yes, there are several ways to speed up training on your Arch Linux box by optimizing the utilization of your system's resources and fine-tuning your training setup. Here are the key strategies:
+# HTML Login Field Detector
 
----
+`html-login-field-detector` is a Python library designed to identify and process login fields in HTML documents. Powered by machine learning (DistilBERT) and modern web scraping tools, this library provides a robust solution for automating form detection in web applications.
 
-### **1. Optimize Resource Utilization**
+## Features
+- Detects login forms in HTML documents.
+- Utilizes Hugging Face's DistilBERT model for advanced text processing.
+- Integrates seamlessly with Python web scraping workflows.
+- Supports GPU acceleration for faster processing.
 
-#### **Use Your GPU Fully**
-1. **Ensure CUDA and cuDNN Are Installed:**
-   - Install the NVIDIA proprietary drivers:
-     ```bash
-     sudo pacman -S nvidia nvidia-utils
-     ```
-   - Install CUDA:
-     ```bash
-     sudo pacman -S cuda
-     ```
-   - Install cuDNN:
-     ```bash
-     sudo pacman -S cudnn
-     ```
+## Installation
 
-2. **Check GPU Utilization**:
-   - Use `nvidia-smi` to monitor GPU usage and ensure the training job utilizes the GPU:
-     ```bash
-     nvidia-smi
-     ```
-
-3. **Mixed Precision Training (FP16)**:
-   - Enable mixed precision to speed up computations while reducing memory usage:
-     ```python
-     from transformers import TrainingArguments
-
-     training_args = TrainingArguments(
-         output_dir="./results",
-         per_device_train_batch_size=16,
-         num_train_epochs=3,
-         fp16=True,  # Enables mixed precision
-     )
-     ```
-
-4. **Pin GPU Memory**:
-   - Add this line to prevent other processes from taking GPU memory:
-     ```python
-     torch.backends.cudnn.benchmark = True
-     ```
-
----
-
-### **2. Optimize Training Setup**
-
-#### **Increase Batch Size**
-- Larger batches process more samples in parallel, reducing the number of steps.
-  ```python
-  TrainingArguments(per_device_train_batch_size=32)
-  ```
-
-#### **Gradient Accumulation**
-- If GPU memory limits the batch size, use gradient accumulation to simulate larger batches:
-  ```python
-  TrainingArguments(gradient_accumulation_steps=2)
-  ```
-
-#### **Use Smaller Models**
-- If your workload doesn't require a large model, use smaller architectures (e.g., `distilbert` instead of `bert`).
-
-#### **Reduce Sequence Length**
-- Truncate sequences to reduce unnecessary computation:
-  ```python
-  tokenizer(max_length=128, truncation=True, padding=True)
-  ```
-
-#### **Use Faster Optimizers**
-- Optimizers like `AdamW` with proper configuration can reduce overhead.
-
----
-
-### **3. Parallelize and Utilize All Resources**
-
-#### **Utilize CPU Cores**
-- If the data loader is slow, ensure it uses all CPU cores:
-  ```python
-  DataLoader(dataset, num_workers=<number_of_cores>)
-  ```
-
-#### **Use Distributed Data Parallel (DDP)**
-- If you have multiple GPUs, use PyTorch DistributedDataParallel:
-  ```bash
-  python -m torch.distributed.launch --nproc_per_node=2 script.py
-  ```
-
-#### **Data Preprocessing Optimization**
-- Preprocess data offline and cache it to avoid bottlenecks during training.
-  ```python
-  dataset = dataset.map(preprocess_function, cache_file_name="cached_data.arrow")
-  ```
-
----
-
-### **4. Optimize Disk I/O**
-
-#### **Use SSDs**
-- Store your dataset and training outputs on SSDs to reduce I/O latency.
-
-#### **Prefetch Data**
-- Use a data loader with prefetching to minimize data transfer delays:
-  ```python
-  DataLoader(dataset, prefetch_factor=2, pin_memory=True)
-  ```
-
----
-
-### **5. Adjust Training Configuration**
-
-#### **Reduce Epochs**
-- Shorten training epochs if your dataset is small or if the model converges early:
-  ```python
-  TrainingArguments(num_train_epochs=3)
-  ```
-
-#### **Reduce Evaluation Frequency**
-- Evaluate less frequently to save time:
-  ```python
-  TrainingArguments(evaluation_strategy="epoch")
-  ```
-
-#### **Use Checkpoint Resumption**
-- If training crashes, resume from the last checkpoint instead of restarting:
-  ```bash
-  trainer.train(resume_from_checkpoint=True)
-  ```
-
----
-
-### **6. System Optimizations on Arch Linux**
-
-#### **Enable High-Performance Mode**
-- Switch to a high-performance CPU governor:
-  ```bash
-  sudo cpupower frequency-set -g performance
-  ```
-
-#### **Monitor and Kill Resource-Heavy Background Processes**
-- Use `htop` to identify and kill unnecessary processes:
-  ```bash
-  htop
-  ```
-
-#### **Ensure Enough Swap Space**
-- If memory is limited, increase swap space:
-  ```bash
-  sudo fallocate -l 4G /swapfile
-  sudo chmod 600 /swapfile
-  sudo mkswap /swapfile
-  sudo swapon /swapfile
-  ```
-
----
-
-### **7. Alternative Lightweight Training Frameworks**
-- Use efficient libraries for faster training:
-  - **DeepSpeed**: Optimizes large-scale training.
-  - **Accelerate**: Hugging Face's library for fast and simple distributed training.
-
-Install and configure:
+### Using pip
+To install the library along with the CPU-compatible dependencies:
 ```bash
-pip install deepspeed
+pip install html-login-field-detector[cpu]
 ```
 
-Use with Hugging Face:
+For GPU compatibility:
+```bash
+pip install html-login-field-detector[gpu] --extra-index-url https://download.pytorch.org/whl/cu118
+```
+
+## Usage
 ```python
-TrainingArguments(deepspeed="ds_config.json")
+from login_field_detector import LoginFieldDetector
+
+# Initialize the detector
+detector = LoginFieldDetector()
+
+# Detect login fields in an HTML document
+html_source = "<html>...</html>"  # Your HTML content
+result = detector.detect(html_source)
+
+print(result)  # Output details of detected login fields
 ```
 
----
+## Dataset
+This project includes a dataset of login page URLs for training and testing purposes, located at `dataset/training_urls.json`. The dataset can be extended or updated as needed.
 
-### **torch.compile(model)*
-- Use PyTorch’s profiler to identify bottlenecks:
-  ```python
-    self.model = self.model.to(self.device)
-    self.model = torch.compile(self.model)
-    log.info("Model successfully compiled with torch.compile.")
-  ```
-#### Install prerequisites
+## Development
+Clone the repository and install the dependencies locally:
 ```bash
-pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cu118
+git clone https://github.com/ByVictorrr/LoginFieldDetector.git
+cd LoginFieldDetector
 
+# Install dependencies
+pip install -e .[cpu,test]
 ```
 
----
+### Running Tests
+Run the tests using `pytest`:
+```bash
+pytest
+```
 
-### Summary of Quick Wins
-1. **Ensure GPU is fully utilized** (use `nvidia-smi` to monitor).
-2. **Enable mixed precision training** (`fp16=True`).
-3. **Increase batch size** or use **gradient accumulation**.
-4. **Optimize system performance** (high-performance mode, SSDs).
-5. **Reduce evaluation frequency** and sequence length.
+## License
+This project is licensed under the [MIT License](LICENSE).
 
-Let me know if you’d like help implementing any of these optimizations!
+## Contributing
+We welcome contributions! Please fork the repository, make changes, and submit a pull request.
+
+## Links
+- **Homepage**: [ByVictorrr on GitHub](https://github.com/ByVictorrr)
+- **Repository**: [LoginFieldDetector](https://github.com/ByVictorrr/LoginFieldDetector)
+- **Dataset**: `dataset/training_urls.json`
 
