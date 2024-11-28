@@ -21,7 +21,7 @@ def get_langs():
             else:
                 languages.extend([name, native])
         except Exception as e:
-            log.error(f"Error processing language code '{code}': {e}")
+            log.warning(f"Error processing language code '{code}': {e}")
     return languages
 
 

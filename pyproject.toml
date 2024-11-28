@@ -17,6 +17,8 @@ classifiers = [
 ]
 dynamic = ["dependencies"]
 
+[project.optional-dependencies]
+test = ["pytest"]
 [project.urls]
 homepage = "https://github.com/ByVictorrr"
 repository = "https://github.com/ByVictorrr/LoginFieldDetector"
@@ -32,3 +34,4 @@ packages = ["login_field_detector"]
 # Install these files relative to the installation prefix
 "dataset" = ["dataset/training_urls.json"]
 "docs" = ["README.md"]
+
