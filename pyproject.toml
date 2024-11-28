@@ -15,7 +15,6 @@ classifiers = [
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
 ]
-dynamic = ["dependencies"]
 dependencies = [
     "transformers>=4.33.0",
     "datasets>=2.14.0",
