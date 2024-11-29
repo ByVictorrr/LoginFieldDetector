@@ -50,12 +50,12 @@ class WeightedTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
-def download_model_files():
+def download_model_files(root_dir):
     """Downloads the necessary model files from Hugging Face Hub.
 
     Returns paths to the downloaded model and tokenizer files.
     """
-    model_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "download_model")
+    model_dir = os.path.join(root_dir, "download_model")
     repo_id = "byvictorrr/html-login-field-detector"
     # Ensure the directory exists
     os.makedirs(model_dir, exist_ok=True)
@@ -85,11 +85,13 @@ class LoginFieldDetector:
         self.label2id = {label: i for i, label in enumerate(self.labels)}
         self.id2label = {i: label for label, i in self.label2id.items()}
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        root_dir = os.path.dirname(os.path.dirname(__file__))
+        self.urls_path = os.path.join(root_dir, "dataset", "training_urls.json")
         log.info(f"Using device: {self.device}")
         # Download model files if not provided
         if model_dir is None:
             log.info("Downloading model files from Hugging Face...")
-            model_dir = download_model_files()
+            model_dir = download_model_files(root_dir)
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
             self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -113,7 +115,6 @@ class LoginFieldDetector:
             )
             self.model = DistilBertForSequenceClassification(config)
 
-        self.urls_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
         self.model = self.model.to(self.device)
         # self.model = torch.compile(self.model)
         self.writer = SummaryWriter(log_dir="logs")
