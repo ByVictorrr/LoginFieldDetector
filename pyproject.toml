@@ -46,9 +46,8 @@ gpu = [
 ]
 docs = [
     "sphinx>=7.2",
-    "sphinx-autodoc",
-    "sphinxcontrib-napoleon",
-    "sphinx-rtd-theme"
+    "sphinxcontrib-napoleon",  # For Google/NumPy docstring styles
+    "sphinx-rtd-theme",        # Optional theme
 ]
 test = ["pytest"]
 [project.urls]
