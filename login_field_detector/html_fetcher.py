@@ -57,7 +57,7 @@ class HTMLFetcher:
         scraper = self.create_scraper() if use_scraper else requests
 
         try:
-            response = scraper.get(url, timeout=20, allow_redirects=True)
+            response = scraper.get(url, timeout=20, allow_redirects=True, verify=False)
             response.raise_for_status()
             html_content = response.text
             self.cache.set(url, html_content, expire=self.ttl)  # Cache successful fetch
