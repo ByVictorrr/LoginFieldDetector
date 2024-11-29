@@ -4,7 +4,7 @@ from diskcache import Cache
 import asyncio
 from fake_useragent import UserAgent
 from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError
+from playwright.async_api import TimeoutError as PlaywrightTimeoutError, async_playwright
 from playwright_stealth import stealth_async
 
 log = logging.getLogger(__name__)
@@ -12,8 +12,7 @@ log = logging.getLogger(__name__)
 
 class HTMLFetcher:
     def __init__(self, cache_dir=None, ttl=7 * 24 * 3600, max_workers=10, max_concurrency=5):
-        """
-        HTMLFetcher for downloading HTML content with caching and retry support.
+        """HTMLFetcher for downloading HTML content with caching and retry support.
 
         :param cache_dir: Directory for persistent cache storage.
         :param ttl: Time-to-live (in seconds) for the cache.
@@ -123,8 +122,10 @@ class HTMLFetcher:
         if force:
             for url in urls:
                 if url in self.failed_url_cache:
+                    log.info(f"Deleting {url} from failed_url_cache")
                     self.failed_url_cache.delete(url)
-                elif url in self.cache:
+                if url in self.cache:
+                    log.info(f"Deleting {url} from cache")
                     self.cache.delete(url)
 
         # Call the asynchronous fetcher synchronously
