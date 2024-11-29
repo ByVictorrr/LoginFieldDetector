@@ -11,6 +11,7 @@ results/
 logs/
 fine_tuned_model/
 html_cache/
+docs/build
 
 # Test web server
 certs/
