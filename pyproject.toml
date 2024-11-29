@@ -53,6 +53,7 @@ test = ["pytest"]
 [project.urls]
 homepage = "https://github.com/ByVictorrr"
 repository = "https://github.com/ByVictorrr/LoginFieldDetector"
+documentation = "https://byvictorrr.github.io/LoginFieldDetector/"
 
 [tool.setuptools]
 packages = ["login_field_detector"]
