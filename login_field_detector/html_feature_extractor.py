@@ -94,12 +94,12 @@ PATTERNS = {
         re.IGNORECASE
     ),
     # Important
-    "LOGIN_BUTTON": re.compile(
-        r"(log\s*in|sign\s*in|sign\s*on|access account|proceed to login|continue to login|submit credentials|enter account|login now)",
-        re.IGNORECASE
-    ),
     "USERNAME": re.compile(
         r"(e-?mail|phone|user(?:name)?|login(?: name)?|account(?: name)?|(?:account\s)?identifier|profile name)",
+        re.IGNORECASE
+    ),
+    "LOGIN_BUTTON": re.compile(
+        r"(log\s*in|sign\s*in|sign\s*on|access account|proceed to login|continue to login|submit credentials|enter account|login now)",
         re.IGNORECASE
     ),
     "PHONE_NUMBER": re.compile(

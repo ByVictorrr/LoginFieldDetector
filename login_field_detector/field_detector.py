@@ -18,8 +18,7 @@ from transformers import (
 )
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
-
-from .utils import download_model_files
+from huggingface_hub import hf_hub_download
 from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 from .html_fetcher import HTMLFetcher
 
@@ -51,6 +50,31 @@ class WeightedTrainer(Trainer):
         return (loss, outputs) if return_outputs else loss
 
 
+def download_model_files():
+    """Downloads the necessary model files from Hugging Face Hub.
+
+    Returns paths to the downloaded model and tokenizer files.
+    """
+    model_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "download_model")
+    repo_id = "byvictorrr/html-login-field-detector"
+    # Ensure the directory exists
+    os.makedirs(model_dir, exist_ok=True)
+
+    # Remove existing files to force overwrite
+    files_to_download = ["model.safetensors", "config.json", "tokenizer.json"]
+    for filename in files_to_download:
+        file_path = os.path.join(model_dir, filename)
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    # Download fresh files
+    hf_hub_download(repo_id=repo_id, filename="model.safetensors", cache_dir=model_dir)
+    hf_hub_download(repo_id=repo_id, filename="config.json", cache_dir=model_dir)
+    hf_hub_download(repo_id=repo_id, filename="tokenizer.json", cache_dir=model_dir)
+
+    return model_dir
+
+
 class LoginFieldDetector:
     """Model for login field detection using BERT."""
 
@@ -73,8 +97,8 @@ class LoginFieldDetector:
                 num_labels=len(self.labels),
                 id2label=self.id2label,
                 label2id=self.label2id,
-                from_safetensors=True  # Add this argument to load SafeTensors
             )
+            log.info("Not need to train this model because it has been fetched.")
         except Exception as e:
             log.warning(f"Warning: {model_dir} not found or invalid. Using 'distilbert-base-uncased' as default. "
                         f"Error: {e}")
@@ -230,9 +254,11 @@ class LoginFieldDetector:
 
         Allowing multiple entries per label above a specified probability threshold and sorted by probability.
         """
-        if not url or not html_content:
+        if not url and not html_content:
             raise ValueError(f"Need to pass {html_content=} or {url=}.")
-        html_content = self.url_loader.fetch_html(url) if url else html_content
+        if not (html_content := self.url_loader.fetch_html(url) if url else html_content):
+            return []
+
         tokens, _, xpaths = self.feature_extractor.get_features(html_content)
         # Tokenize the features
         if not tokens:
@@ -356,4 +382,4 @@ if __name__ == "__main__":
     )
     output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model")
     detector = LoginFieldDetector(model_dir=output_dir)
-    detector.train(output_dir=output_dir, force=True)
+    detector.train(force=True)
