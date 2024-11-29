@@ -6,8 +6,8 @@ from login_field_detector import LoginFieldDetector
 @pytest.fixture(scope="session")
 def detector():
     """Synchronous fixture to initialize and train LoginFieldDetector."""
-    detector = LoginFieldDetector(model_dir="model")
-    detector.train(force=True, output_dir="model")  # Pass only HTML data
+    detector = LoginFieldDetector(model_dir=None)
+    detector.train(force=False)  # Pass only HTML data
     return detector
 
 

@@ -14,7 +14,7 @@ from transformers import (
     Trainer,
     TrainingArguments,
     DistilBertForSequenceClassification,
-    DistilBertTokenizerFast,
+    DistilBertTokenizerFast, AutoModelForSequenceClassification, AutoTokenizer, DistilBertConfig,
 )
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
@@ -67,8 +67,8 @@ class LoginFieldDetector:
             log.info("Downloading model files from Hugging Face...")
             model_dir = download_model_files()
         try:
-            self.tokenizer = DistilBertTokenizerFast.from_pretrained(model_dir)
-            self.model = DistilBertForSequenceClassification.from_pretrained(
+            self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
+            self.model = AutoModelForSequenceClassification.from_pretrained(
                 model_dir,
                 num_labels=len(self.labels),
                 id2label=self.id2label,
@@ -78,19 +78,24 @@ class LoginFieldDetector:
         except Exception as e:
             log.warning(f"Warning: {model_dir} not found or invalid. Using 'distilbert-base-uncased' as default. "
                         f"Error: {e}")
+
             self.tokenizer = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
-            self.model = DistilBertForSequenceClassification.from_pretrained(
-                "distilbert-base-uncased",
-                num_labels=len(self.labels),
+            # Create a config with model_type
+            config = DistilBertConfig(
+                num_labels=len(labels),
                 id2label=self.id2label,
                 label2id=self.label2id,
+                model_type="distilbert"  # Explicitly set the model_type
             )
+            self.model = DistilBertForSequenceClassification(config)
+
         self.urls_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json")
         self.model = self.model.to(self.device)
         # self.model = torch.compile(self.model)
         self.writer = SummaryWriter(log_dir="logs")
         self.feature_extractor = HTMLFeatureExtractor(self.label2id)
         self.url_loader = HTMLFetcher()
+        self.model_dir = model_dir
 
     def create_dataset(self, inputs, labels):
         """Align 1D labels with tokenized inputs."""
@@ -149,11 +154,10 @@ class LoginFieldDetector:
 
         return filtered_inputs, filtered_labels
 
-    def train(self, urls=None, output_dir="html_field_detector", epochs=10, batch_size=16, force=False):
+    def train(self, urls=None, epochs=10, batch_size=16, force=False):
         """Train the model.
 
         :param urls: List of URLs to fetch and process for training.
-        :param output_dir: Directory to save the trained model.
         :param epochs: Number of training epochs.
         :param batch_size: Batch size for training.
         :param force: Force re-fetching and reprocessing all URLs.
@@ -173,7 +177,7 @@ class LoginFieldDetector:
 
         log.info("Starting training...")
         training_args = TrainingArguments(
-            output_dir=output_dir,
+            output_dir=self.model_dir,
             evaluation_strategy="steps",
             eval_steps=500,
             logging_steps=100,
@@ -204,8 +208,8 @@ class LoginFieldDetector:
 
         # Save model and tokenizer
         log.info("Saving model and tokenizer...")
-        self.model.save_pretrained(output_dir)  # Save model weights
-        self.tokenizer.save_pretrained(output_dir)  # Save tokenizer
+        self.model.save_pretrained(self.model_dir)  # Save model weights
+        self.tokenizer.save_pretrained(self.model_dir)  # Save tokenizer
         self.evaluate(val_dataset)
 
     def _compute_class_weights(self, labels):
