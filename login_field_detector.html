@@ -18,7 +18,8 @@
       <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
     <script src="_static/js/theme.js"></script>
     <link rel="index" title="Index" href="genindex.html" />
-    <link rel="search" title="Search" href="search.html" /> 
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="prev" title="login_field_detector" href="modules.html" /> 
 </head>
 
 <body class="wy-body-for-nav"> 
@@ -40,58 +41,41 @@
   </form>
 </div>
         </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
-              <!-- Local TOC -->
-              <div class="local-toc"><ul>
-<li><a class="reference internal" href="#">login_field_detector package</a><ul>
-<li><a class="reference internal" href="#submodules">Submodules</a></li>
-<li><a class="reference internal" href="#module-login_field_detector.field_detector">login_field_detector.field_detector module</a><ul>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector</span></code></a><ul>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.create_dataset"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.create_dataset()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.evaluate"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.evaluate()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.plot_confusion_matrix"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.plot_confusion_matrix()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.predict"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.predict()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.process_urls"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.process_urls()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.train"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.train()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.visualize_class_distribution"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.visualize_class_distribution()</span></code></a></li>
+              <p class="caption" role="heading"><span class="caption-text">Contents:</span></p>
+<ul class="current">
+<li class="toctree-l1 current"><a class="reference internal" href="modules.html">login_field_detector</a><ul class="current">
+<li class="toctree-l2 current"><a class="current reference internal" href="#">login_field_detector package</a><ul>
+<li class="toctree-l3"><a class="reference internal" href="#submodules">Submodules</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector.field_detector">login_field_detector.field_detector module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.field_detector.WeightedTrainer"><code class="docutils literal notranslate"><span class="pre">WeightedTrainer</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.field_detector.compute_metrics"><code class="docutils literal notranslate"><span class="pre">compute_metrics()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.WeightedTrainer"><code class="docutils literal notranslate"><span class="pre">WeightedTrainer</span></code></a><ul>
-<li><a class="reference internal" href="#login_field_detector.field_detector.WeightedTrainer.compute_loss"><code class="docutils literal notranslate"><span class="pre">WeightedTrainer.compute_loss()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector.html_feature_extractor">login_field_detector.html_feature_extractor module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor"><code class="docutils literal notranslate"><span class="pre">HTMLFeatureExtractor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.determine_label"><code class="docutils literal notranslate"><span class="pre">determine_label()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_langs"><code class="docutils literal notranslate"><span class="pre">get_langs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_xpath"><code class="docutils literal notranslate"><span class="pre">get_xpath()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.is_item_visible"><code class="docutils literal notranslate"><span class="pre">is_item_visible()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.preprocess_field"><code class="docutils literal notranslate"><span class="pre">preprocess_field()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#login_field_detector.field_detector.compute_metrics"><code class="docutils literal notranslate"><span class="pre">compute_metrics()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector.html_fetcher">login_field_detector.html_fetcher module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-login_field_detector.html_feature_extractor">login_field_detector.html_feature_extractor module</a><ul>
-<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor"><code class="docutils literal notranslate"><span class="pre">HTMLFeatureExtractor</span></code></a><ul>
-<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor.get_features"><code class="docutils literal notranslate"><span class="pre">HTMLFeatureExtractor.get_features()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector.utils">login_field_detector.utils module</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.utils.download_model_files"><code class="docutils literal notranslate"><span class="pre">download_model_files()</span></code></a></li>
 </ul>
 </li>
-<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.determine_label"><code class="docutils literal notranslate"><span class="pre">determine_label()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_langs"><code class="docutils literal notranslate"><span class="pre">get_langs()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_xpath"><code class="docutils literal notranslate"><span class="pre">get_xpath()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.is_item_visible"><code class="docutils literal notranslate"><span class="pre">is_item_visible()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.preprocess_field"><code class="docutils literal notranslate"><span class="pre">preprocess_field()</span></code></a></li>
-</ul>
-</li>
-<li><a class="reference internal" href="#module-login_field_detector.html_fetcher">login_field_detector.html_fetcher module</a><ul>
-<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher</span></code></a><ul>
-<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher.create_scraper"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher.create_scraper()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_all"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher.fetch_all()</span></code></a></li>
-<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_html"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher.fetch_html()</span></code></a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector">Module contents</a></li>
 </ul>
 </li>
 </ul>
 </li>
-<li><a class="reference internal" href="#module-login_field_detector.utils">login_field_detector.utils module</a><ul>
-<li><a class="reference internal" href="#login_field_detector.utils.download_model_files"><code class="docutils literal notranslate"><span class="pre">download_model_files()</span></code></a></li>
 </ul>
-</li>
-<li><a class="reference internal" href="#module-login_field_detector">Module contents</a></li>
-</ul>
-</li>
-</ul>
-</div>
+
         </div>
       </div>
     </nav>
@@ -106,6 +90,7 @@
           <div role="navigation" aria-label="Page navigation">
   <ul class="wy-breadcrumbs">
       <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+          <li class="breadcrumb-item"><a href="modules.html">login_field_detector</a></li>
       <li class="breadcrumb-item active">login_field_detector package</li>
       <li class="wy-breadcrumbs-aside">
             <a href="_sources/login_field_detector.rst.txt" rel="nofollow"> View page source</a>
@@ -331,7 +316,9 @@
 
            </div>
           </div>
-          <footer>
+          <footer><div class="rst-footer-buttons" role="navigation" aria-label="Footer">
+        <a href="modules.html" class="btn btn-neutral float-left" title="login_field_detector" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left" aria-hidden="true"></span> Previous</a>
+    </div>
 
   <hr/>
 
