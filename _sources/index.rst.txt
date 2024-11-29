@@ -13,6 +13,9 @@ This section provides detailed documentation for the modules, classes, and funct
    :maxdepth: 2
    :caption: Contents:
 
-
+   getting_started
+   installation
    modules
+   examples
+   changelog
 
