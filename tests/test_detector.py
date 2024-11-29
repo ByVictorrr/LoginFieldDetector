@@ -5,19 +5,36 @@ from login_field_detector import LoginFieldDetector
 
 @pytest.fixture(scope="session")
 def detector():
-    """Synchronous fixture to initialize and train LoginFieldDetector."""
-    detector = LoginFieldDetector(model_dir="model")
-    detector.train(force=True)  # Pass only HTML data
+    """Fixture to initialize and train LoginFieldDetector."""
+    detector = LoginFieldDetector()
+    detector.train(force=True)  # Assuming only HTML data is required for training
     return detector
 
 
 @pytest.mark.parametrize("url", [
-    "https://x.com/i/flow/login",
-    "https://www.facebook.com/login",
-    "https://www.instagram.com/accounts/login/",
+    "https://x.com/i/flow/login",  # Twitter
+    "https://www.facebook.com/login",  # Facebook
+    "https://www.instagram.com/accounts/login/",  # Instagram
+    "https://www.linkedin.com/login",  # LinkedIn
+    "https://secure.paypal.com/signin",  # PayPal
 ])
-def test_media_urls(detector, url):
-    """Test LoginFieldDetector with a set of media URLs."""
-    if not detector.predict(url=url):
-        pytest.fail(f"LoginFieldDetector failed with media URLs")
-    print("Pytest succeeded.")
+def test_valid_login_urls(detector, url):
+    """Test LoginFieldDetector with valid login page URLs."""
+    assert detector.predict(url=url), f"Failed to detect login fields for {url}"
+
+
+@pytest.mark.parametrize("url", [
+    "https://example.com/non-login-page",  # Non-login page
+    "ftp://example.com",  # Unsupported protocol
+    "https://malformed.com",  # Malformed URL
+])
+def test_invalid_login_urls(detector, url):
+    """Test LoginFieldDetector with invalid or non-login URLs."""
+    assert not detector.predict(url=url), f"Incorrectly detected login fields for {url}"
+
+
+def test_training():
+    """Ensure training creates a model directory."""
+    detector = LoginFieldDetector(model_dir="test_model")
+    detector.train(force=True)
+    assert os.path.exists("test_model"), "Model directory was not created during training"

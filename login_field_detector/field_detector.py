@@ -138,17 +138,17 @@ class LoginFieldDetector:
         }
         return Dataset.from_dict(data)
 
-    def process_urls(self, urls, force=False, o_label_ratio=0.5):
-        """
-        Preprocess, balance data, and include bounding boxes.
+    def process_urls(self, urls, force=False, o_label_ratio=0.5, screenshots=False):
+        """Preprocess the urls for training the model and balance the data
 
         :param urls: List of URLs to process.
         :param force: Force re-fetching all URLs.
+        :param screenshots: Whether you want to screenshot the urls being processed
         :param o_label_ratio: Ratio of 'UNLABELED' labels to retain.
         :return: Filtered inputs and labels.
         """
         inputs, labels = [], []
-        for url, text in self.url_loader.fetch_all(urls, force=force).items():
+        for url, text in self.url_loader.fetch_all(urls, force=force, screenshot=screenshots).items():
             try:
                 tokens, token_labels, _ = self.feature_extractor.get_features(text)
                 assert len(tokens) == len(token_labels)
@@ -179,12 +179,13 @@ class LoginFieldDetector:
 
         return filtered_inputs, filtered_labels
 
-    def train(self, urls=None, epochs=10, batch_size=16, force=False):
+    def train(self, urls=None, epochs=10, batch_size=16, force=False, screenshots=False):
         """Train the model.
 
         :param urls: List of URLs to fetch and process for training.
         :param epochs: Number of training epochs.
         :param batch_size: Batch size for training.
+        :param screenshots: Whether you want to screenshot the urls being processed
         :param force: Force re-fetching and reprocessing all URLs.
         """
         start_time = time.time()
@@ -193,7 +194,7 @@ class LoginFieldDetector:
                 urls = json.load(flp)
 
         log.info("Collecting data...")
-        inputs, labels = self.process_urls(urls, force=force)
+        inputs, labels = self.process_urls(urls, force=force, screenshots=screenshots)
 
         log.info("Preparing datasets...")
         dataset = self.create_dataset(inputs, labels)

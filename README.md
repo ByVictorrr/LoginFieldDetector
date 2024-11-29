@@ -20,6 +20,11 @@ For GPU compatibility:
 ```bash
 pip install html-login-field-detector[gpu] --extra-index-url https://download.pytorch.org/whl/cu118
 ```
+### Install System Dependencies
+Run the following command to install Playwright's system dependencies:
+```bash
+playwright install-deps
+
 
 ## Usage
 ```python
@@ -63,5 +68,6 @@ We welcome contributions! Please fork the repository, make changes, and submit a
 ## Links
 - **Homepage**: [ByVictorrr on GitHub](https://github.com/ByVictorrr)
 - **Repository**: [LoginFieldDetector](https://github.com/ByVictorrr/LoginFieldDetector)
+- **Documentation**": [Docs]()
 - **Dataset**: `dataset/training_urls.json`
 

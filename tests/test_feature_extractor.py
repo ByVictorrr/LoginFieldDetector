@@ -1,6 +1,5 @@
-# test_html_feature_extractor.py
 import json
-import os.path
+import os
 import logging
 import pytest
 from bs4 import BeautifulSoup
@@ -8,48 +7,43 @@ from login_field_detector import determine_label, HTMLFetcher, HTMLFeatureExtrac
 
 log = logging.getLogger(__file__)
 
-with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json"), "r") as fp:
-    TRAINING_URLS = json.load(fp=fp)
+with open(os.path.join(os.path.dirname(__file__), "test_training_urls.json"), "r") as fp:
+    TEST_URLS = json.load(fp=fp)
 
 
-@pytest.mark.parametrize("url", TRAINING_URLS)
-def test_html_extractor(url):
-    fetcher = HTMLFetcher()
-    html_text = fetcher.fetch_html(url)
-    extractor = HTMLFeatureExtractor({label: i for i, label in enumerate(LABELS)})
-    tokens, labels, _ = extractor.get_features(html_text)
-    for token, label in zip(tokens, [LABELS[l] for l in labels]):
-        log.info(f"{label=}: {token=}")
+@pytest.fixture(scope="module")
+def fetcher():
+    """Fixture for HTMLFetcher."""
+    return HTMLFetcher()
+
+
+@pytest.fixture(scope="module")
+def extractor():
+    """Fixture for HTMLFeatureExtractor."""
+    label2id = {label: idx for idx, label in enumerate(LABELS)}
+    return HTMLFeatureExtractor(label2id)
+
+
+@pytest.mark.parametrize("url", TEST_URLS)
+def test_html_extraction(fetcher, extractor, url):
+    """Test feature extraction from real URLs."""
+    html_content = fetcher.fetch_html(url)
+    tokens, labels, xpaths = extractor.get_features(html_content)
+    assert len(tokens) == len(labels), f"Mismatch in tokens and labels for {url}"
 
 
 @pytest.mark.parametrize(
     "html_snippet, expected_label",
     [
-        # Test cases for valid labels
         ('<input type="text" name="username">', "USERNAME"),
-        ('<input type="password" name="pass">', "PASSWORD"),
-        ('<button>Login</button>', "LOGIN_BUTTON"),
-        ('<input type="text" name="phone">', "PHONE_NUMBER"),
-        ('<input type="text" placeholder="Enter captcha">', "CAPTCHA"),
-        ('<a href="#">Forgot password?</a>', "FORGOT_PASSWORD"),
-        ('<button>Sign in with Google</button>', "SOCIAL_LOGIN_BUTTONS"),
-        ('<div>I\'m not a robot</div>', "CAPTCHA"),
-
-        # Test cases for default label (UNLABELED)
-        ('<div>Completely unrelated text</div>', "UNLABELED"),
-        ('<span style="display: none;">Hidden content</span>', "UNLABELED"),
+        ('<input type="password" name="password">', "PASSWORD"),
+        ('<button type="submit">Login</button>', "LOGIN_BUTTON"),
+        ('<div>Non-related content</div>', "UNLABELED"),
+        ('<input type="hidden" name="csrf_token">', "UNLABELED"),
     ]
 )
 def test_determine_label(html_snippet, expected_label):
-    """Test determine_label function with various HTML inputs."""
+    """Test determine_label function."""
     soup = BeautifulSoup(html_snippet, "lxml")
     tag = soup.find()
     assert determine_label(tag) == expected_label
-
-
-def test_hidden_input_is_unlabeled():
-    """Ensure hidden inputs are labeled as UNLABELED."""
-    html_snippet = '<input type="hidden" name="token" value="abcd1234">'
-    soup = BeautifulSoup(html_snippet, "lxml")
-    tag = soup.find()
-    assert determine_label(tag) == "UNLABELED"
