@@ -6,9 +6,7 @@
 LoginFieldDetector documentation
 ================================
 
-Add your content using ``reStructuredText`` syntax. See the
-`reStructuredText <https://www.sphinx-doc.org/en/master/usage/restructuredtext/index.html>`_
-documentation for details.
+This section provides detailed documentation for the modules, classes, and functions available in the project.
 
 
 .. toctree::
