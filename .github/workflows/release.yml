@@ -1,11 +1,13 @@
 name: Publish Package to PyPI
 
 on:
+  workflow_dispatch:  # Allows manual triggering
   workflow_run:
     workflows:
       - Upload Model to Hugging Face
     types:
       - success
+      - completed
 jobs:
   publish:
     runs-on: ubuntu-latest
