@@ -1,0 +1,359 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" data-content_root="./">
+<head>
+  <meta charset="utf-8" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>login_field_detector package &mdash; LoginFieldDetector 1.1.2 documentation</title>
+      <link rel="stylesheet" type="text/css" href="_static/pygments.css?v=80d5e7a1" />
+      <link rel="stylesheet" type="text/css" href="_static/css/theme.css?v=e59714d7" />
+
+  
+      <script src="_static/jquery.js?v=5d32c60e"></script>
+      <script src="_static/_sphinx_javascript_frameworks_compat.js?v=2cd50e6c"></script>
+      <script src="_static/documentation_options.js?v=6f037312"></script>
+      <script src="_static/doctools.js?v=9bcbadda"></script>
+      <script src="_static/sphinx_highlight.js?v=dc90522c"></script>
+    <script src="_static/js/theme.js"></script>
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" /> 
+</head>
+
+<body class="wy-body-for-nav"> 
+  <div class="wy-grid-for-nav">
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+
+          
+          
+          <a href="index.html" class="icon icon-home">
+            LoginFieldDetector
+          </a>
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" aria-label="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+        </div><div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="Navigation menu">
+              <!-- Local TOC -->
+              <div class="local-toc"><ul>
+<li><a class="reference internal" href="#">login_field_detector package</a><ul>
+<li><a class="reference internal" href="#submodules">Submodules</a></li>
+<li><a class="reference internal" href="#module-login_field_detector.field_detector">login_field_detector.field_detector module</a><ul>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector</span></code></a><ul>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.create_dataset"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.create_dataset()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.evaluate"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.evaluate()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.plot_confusion_matrix"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.plot_confusion_matrix()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.predict"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.predict()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.process_urls"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.process_urls()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.train"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.train()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector.visualize_class_distribution"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector.visualize_class_distribution()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.WeightedTrainer"><code class="docutils literal notranslate"><span class="pre">WeightedTrainer</span></code></a><ul>
+<li><a class="reference internal" href="#login_field_detector.field_detector.WeightedTrainer.compute_loss"><code class="docutils literal notranslate"><span class="pre">WeightedTrainer.compute_loss()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#login_field_detector.field_detector.compute_metrics"><code class="docutils literal notranslate"><span class="pre">compute_metrics()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-login_field_detector.html_feature_extractor">login_field_detector.html_feature_extractor module</a><ul>
+<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor"><code class="docutils literal notranslate"><span class="pre">HTMLFeatureExtractor</span></code></a><ul>
+<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor.get_features"><code class="docutils literal notranslate"><span class="pre">HTMLFeatureExtractor.get_features()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.determine_label"><code class="docutils literal notranslate"><span class="pre">determine_label()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_langs"><code class="docutils literal notranslate"><span class="pre">get_langs()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_xpath"><code class="docutils literal notranslate"><span class="pre">get_xpath()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.is_item_visible"><code class="docutils literal notranslate"><span class="pre">is_item_visible()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.html_feature_extractor.preprocess_field"><code class="docutils literal notranslate"><span class="pre">preprocess_field()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-login_field_detector.html_fetcher">login_field_detector.html_fetcher module</a><ul>
+<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher</span></code></a><ul>
+<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher.create_scraper"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher.create_scraper()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_all"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher.fetch_all()</span></code></a></li>
+<li><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_html"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher.fetch_html()</span></code></a></li>
+</ul>
+</li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-login_field_detector.utils">login_field_detector.utils module</a><ul>
+<li><a class="reference internal" href="#login_field_detector.utils.download_model_files"><code class="docutils literal notranslate"><span class="pre">download_model_files()</span></code></a></li>
+</ul>
+</li>
+<li><a class="reference internal" href="#module-login_field_detector">Module contents</a></li>
+</ul>
+</li>
+</ul>
+</div>
+        </div>
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap"><nav class="wy-nav-top" aria-label="Mobile navigation menu" >
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">LoginFieldDetector</a>
+      </nav>
+
+      <div class="wy-nav-content">
+        <div class="rst-content">
+          <div role="navigation" aria-label="Page navigation">
+  <ul class="wy-breadcrumbs">
+      <li><a href="index.html" class="icon icon-home" aria-label="Home"></a></li>
+      <li class="breadcrumb-item active">login_field_detector package</li>
+      <li class="wy-breadcrumbs-aside">
+            <a href="_sources/login_field_detector.rst.txt" rel="nofollow"> View page source</a>
+      </li>
+  </ul>
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+             
+  <section id="login-field-detector-package">
+<h1>login_field_detector package<a class="headerlink" href="#login-field-detector-package" title="Link to this heading"></a></h1>
+<section id="submodules">
+<h2>Submodules<a class="headerlink" href="#submodules" title="Link to this heading"></a></h2>
+</section>
+<section id="module-login_field_detector.field_detector">
+<span id="login-field-detector-field-detector-module"></span><h2>login_field_detector.field_detector module<a class="headerlink" href="#module-login_field_detector.field_detector" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.field_detector.</span></span><span class="sig-name descname"><span class="pre">LoginFieldDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['UNLABELED',</span> <span class="pre">'USERNAME',</span> <span class="pre">'PHONE_NUMBER',</span> <span class="pre">'PASSWORD',</span> <span class="pre">'LOGIN_BUTTON',</span> <span class="pre">'TWO_FACTOR_AUTH',</span> <span class="pre">'SOCIAL_LOGIN_BUTTONS',</span> <span class="pre">'CAPTCHA',</span> <span class="pre">'LANGUAGE_SWITCH',</span> <span class="pre">'FORGOT_PASSWORD',</span> <span class="pre">'SIGN_UP',</span> <span class="pre">'REMEMBER_ME',</span> <span class="pre">'HELP_LINK',</span> <span class="pre">'PRIVACY_POLICY',</span> <span class="pre">'TERMS_OF_SERVICE',</span> <span class="pre">'NAVIGATION_LINK',</span> <span class="pre">'BANNER',</span> <span class="pre">'ADVERTISEMENTS',</span> <span class="pre">'COOKIE_POLICY',</span> <span class="pre">'IMPRINT']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Model for login field detection using BERT.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.create_dataset">
+<span class="sig-name descname"><span class="pre">create_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.create_dataset" title="Link to this definition"></a></dt>
+<dd><p>Align 1D labels with tokenized inputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.evaluate">
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.evaluate" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the model on a dataset and plot confusion matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.plot_confusion_matrix">
+<span class="sig-name descname"><span class="pre">plot_confusion_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">true_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.plot_confusion_matrix" title="Link to this definition"></a></dt>
+<dd><p>Plot confusion matrix with improved x-axis label spacing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_content</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probability_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.predict" title="Link to this definition"></a></dt>
+<dd><p>Make predictions on new HTML content.</p>
+<p>Allowing multiple entries per label above a specified probability threshold and sorted by probability.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.process_urls">
+<span class="sig-name descname"><span class="pre">process_urls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o_label_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.process_urls" title="Link to this definition"></a></dt>
+<dd><p>Preprocess, balance data, and include bounding boxes.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>urls</strong> – List of URLs to process.</p></li>
+<li><p><strong>force</strong> – Force re-fetching all URLs.</p></li>
+<li><p><strong>o_label_ratio</strong> – Ratio of ‘UNLABELED’ labels to retain.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Filtered inputs and labels.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">output_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'html_field_detector'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.train" title="Link to this definition"></a></dt>
+<dd><p>Train the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>urls</strong> – List of URLs to fetch and process for training.</p></li>
+<li><p><strong>output_dir</strong> – Directory to save the trained model.</p></li>
+<li><p><strong>epochs</strong> – Number of training epochs.</p></li>
+<li><p><strong>batch_size</strong> – Batch size for training.</p></li>
+<li><p><strong>force</strong> – Force re-fetching and reprocessing all URLs.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.visualize_class_distribution">
+<span class="sig-name descname"><span class="pre">visualize_class_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.visualize_class_distribution" title="Link to this definition"></a></dt>
+<dd><p>Plot class distribution.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.WeightedTrainer">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.field_detector.</span></span><span class="sig-name descname"><span class="pre">WeightedTrainer</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">class_weights</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">*</span></span><span class="n"><span class="pre">args</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.WeightedTrainer" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">Trainer</span></code></p>
+<p>Custom Trainer with weighted loss for imbalanced classes.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.WeightedTrainer.compute_loss">
+<span class="sig-name descname"><span class="pre">compute_loss</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">return_outputs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="o"><span class="pre">**</span></span><span class="n"><span class="pre">kwargs</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.WeightedTrainer.compute_loss" title="Link to this definition"></a></dt>
+<dd><p>How the loss is computed by Trainer. By default, all models return the loss in the first element.</p>
+<p>Subclass and override for custom behavior.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.compute_metrics">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.field_detector.</span></span><span class="sig-name descname"><span class="pre">compute_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.compute_metrics" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+</section>
+<section id="module-login_field_detector.html_feature_extractor">
+<span id="login-field-detector-html-feature-extractor-module"></span><h2>login_field_detector.html_feature_extractor module<a class="headerlink" href="#module-login_field_detector.html_feature_extractor" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.HTMLFeatureExtractor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">HTMLFeatureExtractor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label2id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oauth_providers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.HTMLFeatureExtractor.get_features">
+<span class="sig-name descname"><span class="pre">get_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">html_text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor.get_features" title="Link to this definition"></a></dt>
+<dd><p>Extract tokens, labels, xpaths, and bounding boxes from an HTML file.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.determine_label">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">determine_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.determine_label" title="Link to this definition"></a></dt>
+<dd><p>Determine the label of an HTML tag based on patterns.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.get_langs">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">get_langs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.get_langs" title="Link to this definition"></a></dt>
+<dd><p>Retrieves a list of all languages with their English and native names using Babel.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.get_xpath">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">get_xpath</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">element</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.get_xpath" title="Link to this definition"></a></dt>
+<dd><p>Generate XPath for a given BeautifulSoup element.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.is_item_visible">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">is_item_visible</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.is_item_visible" title="Link to this definition"></a></dt>
+<dd></dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.preprocess_field">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">preprocess_field</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.preprocess_field" title="Link to this definition"></a></dt>
+<dd><p>Preprocess an HTML token to include text, parent, sibling, and metadata.</p>
+</dd></dl>
+
+</section>
+<section id="module-login_field_detector.html_fetcher">
+<span id="login-field-detector-html-fetcher-module"></span><h2>login_field_detector.html_fetcher module<a class="headerlink" href="#module-login_field_detector.html_fetcher" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.html_fetcher.</span></span><span class="sig-name descname"><span class="pre">HTMLFetcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./html_cache'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">604800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher.create_scraper">
+<span class="sig-name descname"><span class="pre">create_scraper</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.create_scraper" title="Link to this definition"></a></dt>
+<dd><p>Create a Cloudscraper instance for handling anti-bot challenges.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher.fetch_all">
+<span class="sig-name descname"><span class="pre">fetch_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_all" title="Link to this definition"></a></dt>
+<dd><p>Fetch HTML content for multiple URLs concurrently.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>urls</strong> – List of URLs to fetch.</p></li>
+<li><p><strong>force</strong> – Force fetching even if URLs are cached or marked as failed.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary mapping URLs to their HTML content.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher.fetch_html">
+<span class="sig-name descname"><span class="pre">fetch_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_scraper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_html" title="Link to this definition"></a></dt>
+<dd><p>Fetch HTML content for a given URL with retry support.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – URL to fetch.</p></li>
+<li><p><strong>force</strong> – Force fetching even if cached or marked as failed.</p></li>
+<li><p><strong>use_scraper</strong> – Whether to use Cloudscraper for fetching.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>HTML content as a string.</p>
+</dd>
+<dt class="field-odd">Raises<span class="colon">:</span></dt>
+<dd class="field-odd"><p><strong>requests.exceptions.RequestException</strong> – If the fetch fails.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+</section>
+<section id="module-login_field_detector.utils">
+<span id="login-field-detector-utils-module"></span><h2>login_field_detector.utils module<a class="headerlink" href="#module-login_field_detector.utils" title="Link to this heading"></a></h2>
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.utils.download_model_files">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.utils.</span></span><span class="sig-name descname"><span class="pre">download_model_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.utils.download_model_files" title="Link to this definition"></a></dt>
+<dd><p>Downloads the necessary model files from Hugging Face Hub.</p>
+<p>Returns paths to the downloaded model and tokenizer files.</p>
+</dd></dl>
+
+</section>
+<section id="module-login_field_detector">
+<span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-login_field_detector" title="Link to this heading"></a></h2>
+</section>
+</section>
+
+
+           </div>
+          </div>
+          <footer>
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>&#169; Copyright 2024, Victor Delaplaine.</p>
+  </div>
+
+  Built with <a href="https://www.sphinx-doc.org/">Sphinx</a> using a
+    <a href="https://github.com/readthedocs/sphinx_rtd_theme">theme</a>
+    provided by <a href="https://readthedocs.org">Read the Docs</a>.
+   
+
+</footer>
+        </div>
+      </div>
+    </section>
+  </div>
+  <script>
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script> 
+
+</body>
+</html>

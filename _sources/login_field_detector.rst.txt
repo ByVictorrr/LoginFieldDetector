@@ -1,0 +1,45 @@
+login\_field\_detector package
+==============================
+
+Submodules
+----------
+
+login\_field\_detector.field\_detector module
+---------------------------------------------
+
+.. automodule:: login_field_detector.field_detector
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+login\_field\_detector.html\_feature\_extractor module
+------------------------------------------------------
+
+.. automodule:: login_field_detector.html_feature_extractor
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+login\_field\_detector.html\_fetcher module
+-------------------------------------------
+
+.. automodule:: login_field_detector.html_fetcher
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+login\_field\_detector.utils module
+-----------------------------------
+
+.. automodule:: login_field_detector.utils
+   :members:
+   :undoc-members:
+   :show-inheritance:
+
+Module contents
+---------------
+
+.. automodule:: login_field_detector
+   :members:
+   :undoc-members:
+   :show-inheritance:
