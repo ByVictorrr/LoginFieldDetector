@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=42", "wheel"]
+requires = ["setuptools>=42", "wheel", "sphinx", "sphinx-rtd-theme"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -43,6 +43,12 @@ gpu = [
     "torch==2.5.1+cu118",
     "torchvision==0.20.1+cu118",
     "torchaudio==2.5.1+cu118",
+]
+docs = [
+    "sphinx>=7.2",
+    "sphinx-autodoc",
+    "sphinxcontrib-napoleon",
+    "sphinx-rtd-theme"
 ]
 test = ["pytest"]
 [project.urls]
