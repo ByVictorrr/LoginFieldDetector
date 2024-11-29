@@ -26,6 +26,10 @@ jobs:
         python -m pip install --upgrade pip
         pip install .[docs]
 
+    - name: Generate API Documentation
+      run: |
+        sphinx-apidoc -o docs/source/ login_field_detector/
+
     - name: Build Documentation
       working-directory: docs
       run: |
