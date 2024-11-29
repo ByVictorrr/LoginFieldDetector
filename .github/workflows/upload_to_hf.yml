@@ -1,9 +1,10 @@
+---
 name: Upload Model to Hugging Face
 
 on:
   push:
     branches:
-      - release  # Adjust to your main branch
+      - "release"  # Adjust to your main branch
 
 jobs:
   upload-to-hf:
@@ -17,13 +18,13 @@ jobs:
         run: |
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
           pip install --upgrade pip
-          pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu118
+          pip install .[gpu] \
+              --extra-index-url https://download.pytorch.org/whl/cu118
 
       - name: Train the model
         run: |
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
           PYTHONLOGGING=INFO python -m login_field_detector.field_detector
-
 
       - name: Upload Model to Hugging Face
         env:
@@ -31,26 +32,26 @@ jobs:
         run: |
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
           python -c "
-          import os
-          from huggingface_hub import HfApi
+import os
+from huggingface_hub import HfApi
 
-          # Get Hugging Face token
-          hf_token = os.getenv('HF_TOKEN')
-          if not hf_token:
-          raise ValueError('HF_TOKEN environment variable is not set.')
+# Get Hugging Face token
+hf_token = os.getenv('HF_TOKEN')
+if not hf_token:
+    raise ValueError('HF_TOKEN environment variable is not set.')
 
-          # Initialize the API
-          api = HfApi()
+# Initialize the API
+api = HfApi()
 
-          # Repository details
-          repo_id = 'byvictorrr/html-login-field-detector'
-          local_dir = 'model'  # Directory containing your model files
+# Repository details
+repo_id = 'byvictorrr/html-login-field-detector'
+local_dir = 'model'  # Directory containing your model files
 
-          # Upload the directory
-          api.upload_folder(
-            folder_path=local_dir,
-            repo_id=repo_id,
-            repo_type='model',
-            token=hf_token,
-          )
-          "
+# Upload the directory
+api.upload_folder(
+    folder_path=local_dir,
+    repo_id=repo_id,
+    repo_type='model',
+    token=hf_token,
+)
+"
