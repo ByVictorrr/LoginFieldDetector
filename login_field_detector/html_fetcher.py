@@ -1,4 +1,5 @@
 import logging
+import os.path
 import time
 import random
 import requests
@@ -11,13 +12,14 @@ log = logging.getLogger(__name__)
 
 
 class HTMLFetcher:
-    def __init__(self, cache_dir='./html_cache', ttl=7 * 24 * 3600, max_workers=10):
+    def __init__(self, cache_dir=None, ttl=7 * 24 * 3600, max_workers=10):
         """HTMLFetcher for downloading HTML content with caching and retry support.
 
         :param cache_dir: Directory for persistent cache storage.
         :param ttl: Time-to-live (in seconds) for the cache.
         :param max_workers: Number of concurrent threads for fetching.
         """
+        cache_dir = cache_dir if cache_dir else os.path.join(os.path.dirname(os.path.dirname(__file__)), "html_cache")
         self.cache = Cache(cache_dir)  # Persistent cache for successful fetches
         self.failed_url_cache = Cache(f"{cache_dir}/failed_urls")  # Persistent cache for failed URLs
         self.ttl = ttl

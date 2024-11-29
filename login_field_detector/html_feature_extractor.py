@@ -8,26 +8,6 @@ from babel import Locale
 log = logging.getLogger(__file__)
 
 
-def get_langs():
-    """Retrieves a list of all languages with their English and native names using Babel."""
-    languages = []
-    for code in Locale("en").languages.keys():
-        try:
-            locale = Locale.parse(code)
-            name = locale.get_display_name("en").lower()
-            native = locale.get_display_name(code).lower()
-            if name == native:
-                languages.append(name)
-            else:
-                languages.extend([name, native])
-        except Exception as e:
-            log.warning(f"Error processing language code '{code}': {e}")
-    return languages
-
-
-langs = get_langs()
-
-
 def get_xpath(element):
     """Generate XPath for a given BeautifulSoup element."""
     parts = []
@@ -42,88 +22,26 @@ def get_xpath(element):
 with open(os.path.join(os.path.dirname(__file__), "keywords.json"), "r") as key_fp:
     keywords = json.load(key_fp)
 
+
+# Function to generate language regex dynamically
+def generate_language_switch():
+    langs = []
+    for code in Locale("en").languages.keys():
+        try:
+            locale = Locale.parse(code)
+            name = locale.get_display_name("en").lower()
+            native = locale.get_display_name(code).lower()
+            langs.append(name)
+            if name != native:
+                langs.append(native)
+        except Exception as e:
+            print(f"Error processing language code '{code}': {e}")
+    return "|".join(map(re.escape, set(langs)))  # Escape for regex safety
+
+
 LABELS = keywords["labels"]
-PATTERNS = {
-    "FORGOT_PASSWORD": re.compile(
-        r"(forgot (?:password|account)|reset password|can't access|retrieve|trouble signing in|recover your account)",
-        re.IGNORECASE
-    ),
-    "ADVERTISEMENTS": re.compile(
-        r"(ad|advertisement|promo|sponsored|ads by|learn more|check out|special offer|deal)",
-        re.IGNORECASE
-    ),
-    "NAVIGATION_LINK": re.compile(
-        r"\b(home|back|next|previous|main\s*menu|navigation|navigate|main\s*page|show more|view details|dashboard|explore site)\b",
-        re.IGNORECASE
-    ),
-
-    "HELP_LINK": re.compile(
-        r"(help|support|faq|contact us|need assistance|get help|troubleshoot|customer service)",
-        re.IGNORECASE
-    ),
-    "LANGUAGE_SWITCH": re.compile(
-        fr"(\b({'|'.join([re.escape(lang) for lang in langs])})\b)", re.IGNORECASE
-    ),
-
-    "SIGN_UP": re.compile(
-        r"(sign up|register|create account|join now|get started|new here|enroll|begin)",
-        re.IGNORECASE
-    ),
-    "REMEMBER_ME": re.compile(
-        r"(remember me|stay signed in|keep me logged in|remember login|save session)",
-        re.IGNORECASE
-    ),
-    "PRIVACY_POLICY": re.compile(
-        r"(privacy policy|data protection|terms of privacy|gdpr|your privacy|privacy settings)",
-        re.IGNORECASE
-    ),
-    "TERMS_OF_SERVICE": re.compile(
-        r"(terms of service|terms and conditions|user agreement|tos|terms of use)",
-        re.IGNORECASE
-    ),
-    "BANNER": re.compile(
-        r"(banner|announcement|alert|header|promotion|notification|pop-up|headline)",
-        re.IGNORECASE
-    ),
-    "COOKIE_POLICY": re.compile(
-        r"(cookie policy|cookies|tracking policy|data usage|we use cookies|accept cookies)",
-        re.IGNORECASE
-    ),
-    "IMPRINT": re.compile(
-        r"(imprint|legal notice|about us|company details|contact info|disclaimer|company profile)",
-        re.IGNORECASE
-    ),
-    # Important
-    "USERNAME": re.compile(
-        r"(e-?mail|phone|user(?:name)?|login(?: name)?|account(?: name)?|(?:account\s)?identifier|profile name)",
-        re.IGNORECASE
-    ),
-    "LOGIN_BUTTON": re.compile(
-        r"(log\s*in|sign\s*in|sign\s*on|access account|proceed to login|continue to login|submit credentials|enter account|login now)",
-        re.IGNORECASE
-    ),
-    "PHONE_NUMBER": re.compile(
-        r"(phone|mobile|contact number|cell|telephone|call us)",
-        re.IGNORECASE
-    ),
-    "PASSWORD": re.compile(
-        r"(pass|password|pwd|secret|key|pin|phrase|access code|security word)",
-        re.IGNORECASE
-    ),
-
-    "CAPTCHA": re.compile(
-        r"(captcha|i'm not a robot|security check|verify|prove you're human|challenge|reCAPTCHA)",
-        re.IGNORECASE
-    ),
-    "SOCIAL_LOGIN_BUTTONS": re.compile(
-        fr"(login with|sign in with|connect with|continue with|authenticate with)\s+({'|'.join(keywords['oauth_providers'])})",
-        re.IGNORECASE
-    ),
-    "TWO_FACTOR_AUTH": re.compile(
-        r"(2fa|authenticator|verification code|token|one-time code|security key|two-step verification|otp)",
-        re.IGNORECASE
-    ),
-}
+PATTERNS = {key: re.compile(value, re.IGNORECASE) for key, value in keywords["label_regexes"].items()}
+PATTERNS["LANGUAGE_SWITCH"] = re.compile(fr"(\b({generate_language_switch()})\b)", re.IGNORECASE)
 
 
 def preprocess_field(tag):
@@ -155,8 +73,12 @@ def determine_label(tag):
     # Check patterns for label78:2B:64:CE:21:A7s
     for label, pattern in PATTERNS.items():
         if pattern.search(text) or any(pattern.search(v) for v in attributes.values()):
-            return label
-
+            if label in keywords["input_labels"] and tag.name == "input":
+                return label
+            elif label not in keywords["input_labels"] and tag.name != "input":
+                return label
+            else:
+                continue
     # Default label
     return LABELS[0]
 
