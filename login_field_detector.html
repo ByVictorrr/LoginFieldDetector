@@ -53,12 +53,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.field_detector.LoginFieldDetector"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.field_detector.WeightedTrainer"><code class="docutils literal notranslate"><span class="pre">WeightedTrainer</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.field_detector.compute_metrics"><code class="docutils literal notranslate"><span class="pre">compute_metrics()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.field_detector.download_model_files"><code class="docutils literal notranslate"><span class="pre">download_model_files()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector.html_feature_extractor">login_field_detector.html_feature_extractor module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.HTMLFeatureExtractor"><code class="docutils literal notranslate"><span class="pre">HTMLFeatureExtractor</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.determine_label"><code class="docutils literal notranslate"><span class="pre">determine_label()</span></code></a></li>
-<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_langs"><code class="docutils literal notranslate"><span class="pre">get_langs()</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.generate_language_switch"><code class="docutils literal notranslate"><span class="pre">generate_language_switch()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.get_xpath"><code class="docutils literal notranslate"><span class="pre">get_xpath()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.is_item_visible"><code class="docutils literal notranslate"><span class="pre">is_item_visible()</span></code></a></li>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_feature_extractor.preprocess_field"><code class="docutils literal notranslate"><span class="pre">preprocess_field()</span></code></a></li>
@@ -66,10 +67,6 @@
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector.html_fetcher">login_field_detector.html_fetcher module</a><ul>
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher</span></code></a></li>
-</ul>
-</li>
-<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector.utils">login_field_detector.utils module</a><ul>
-<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.utils.download_model_files"><code class="docutils literal notranslate"><span class="pre">download_model_files()</span></code></a></li>
 </ul>
 </li>
 <li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector">Module contents</a></li>
@@ -204,6 +201,13 @@
 <span class="sig-prename descclassname"><span class="pre">login_field_detector.field_detector.</span></span><span class="sig-name descname"><span class="pre">compute_metrics</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">pred</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.compute_metrics" title="Link to this definition"></a></dt>
 <dd></dd></dl>
 
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.field_detector.download_model_files">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.field_detector.</span></span><span class="sig-name descname"><span class="pre">download_model_files</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">root_dir</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.download_model_files" title="Link to this definition"></a></dt>
+<dd><p>Downloads the necessary model files from Hugging Face Hub.</p>
+<p>Returns paths to the downloaded model and tokenizer files.</p>
+</dd></dl>
+
 </section>
 <section id="module-login_field_detector.html_feature_extractor">
 <span id="login-field-detector-html-feature-extractor-module"></span><h2>login_field_detector.html_feature_extractor module<a class="headerlink" href="#module-login_field_detector.html_feature_extractor" title="Link to this heading"></a></h2>
@@ -226,10 +230,9 @@
 </dd></dl>
 
 <dl class="py function">
-<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.get_langs">
-<span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">get_langs</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.get_langs" title="Link to this definition"></a></dt>
-<dd><p>Retrieves a list of all languages with their English and native names using Babel.</p>
-</dd></dl>
+<dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.generate_language_switch">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.html_feature_extractor.</span></span><span class="sig-name descname"><span class="pre">generate_language_switch</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_feature_extractor.generate_language_switch" title="Link to this definition"></a></dt>
+<dd></dd></dl>
 
 <dl class="py function">
 <dt class="sig sig-object py" id="login_field_detector.html_feature_extractor.get_xpath">
@@ -253,7 +256,7 @@
 <span id="login-field-detector-html-fetcher-module"></span><h2>login_field_detector.html_fetcher module<a class="headerlink" href="#module-login_field_detector.html_fetcher" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.html_fetcher.</span></span><span class="sig-name descname"><span class="pre">HTMLFetcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">'./html_cache'</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">604800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.html_fetcher.</span></span><span class="sig-name descname"><span class="pre">HTMLFetcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">604800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
 <dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher.create_scraper">
@@ -299,16 +302,6 @@
 </dl>
 </dd></dl>
 
-</dd></dl>
-
-</section>
-<section id="module-login_field_detector.utils">
-<span id="login-field-detector-utils-module"></span><h2>login_field_detector.utils module<a class="headerlink" href="#module-login_field_detector.utils" title="Link to this heading"></a></h2>
-<dl class="py function">
-<dt class="sig sig-object py" id="login_field_detector.utils.download_model_files">
-<span class="sig-prename descclassname"><span class="pre">login_field_detector.utils.</span></span><span class="sig-name descname"><span class="pre">download_model_files</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.utils.download_model_files" title="Link to this definition"></a></dt>
-<dd><p>Downloads the necessary model files from Hugging Face Hub.</p>
-<p>Returns paths to the downloaded model and tokenizer files.</p>
 </dd></dl>
 
 </section>

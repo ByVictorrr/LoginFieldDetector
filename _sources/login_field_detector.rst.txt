@@ -28,14 +28,6 @@ login\_field\_detector.html\_fetcher module
    :undoc-members:
    :show-inheritance:
 
-login\_field\_detector.utils module
------------------------------------
-
-.. automodule:: login_field_detector.utils
-   :members:
-   :undoc-members:
-   :show-inheritance:
-
 Module contents
 ---------------
 
