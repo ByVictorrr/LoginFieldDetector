@@ -68,4 +68,10 @@
   "https://bitbucket.org/account/signin/": "duplicate take out; blank screen too",
   "https://www.blogger.com/go/signin": "take out",
   "https://www.bovada.lv/?overlay=login":  "not loaded fully",
+  "https://www.coinbase.com/signin": "spinner still spinning",
+  "https://www.costco.com/LogonForm": "blank screen",
+  "https://www.dailymotion.com/login": "not loaded fully",
+  "https://www.disneyplus.com/login": "spinner still spinning",
+
+
 }
