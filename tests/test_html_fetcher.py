@@ -1,19 +1,26 @@
+import json
 import os
 import pytest
 from login_field_detector import HTMLFetcher
 
+APP_DIR = os.path.dirname(os.path.dirname(__file__))
 
 @pytest.fixture(scope="module")
 def fetcher():
     """Fixture to initialize the HTMLFetcher."""
-    return HTMLFetcher(cache_dir=os.path.join(os.path.dirname(__file__), "test_cache"), max_concurrency=3)
+    num_cpus = os.cpu_count()
+    return HTMLFetcher(cache_dir=os.path.join(APP_DIR, "test_cache"),
+                       max_concurrency=min(num_cpus, 8),
+                       max_workers=min(num_cpus, 4))
 
 
-def test_valid_url(fetcher):
+def test_valid_urls(fetcher):
     """Test handling of redirects."""
-    url = "https://x.com/i/flow/login"  # Redirects to https://github.com
-    html_content = fetcher.fetch_html(url, screenshot=True, force=True)
-    assert html_content is not None, f"Failed to handle redirect for {url}"
+    with open(os.path.join(APP_DIR, "dataset", "training_urls.json"), "r") as fp:
+        training_urls = json.load(fp)
+    url, html_content_list = fetcher.fetch_all(training_urls, force=True, screenshot=True)
+    assert len(html_content_list) >= .8 * len(training_urls), \
+        f"Failed to fetch at least 80 percent of the training_urls"
 
 
 def test_fetch_valid_url(fetcher):

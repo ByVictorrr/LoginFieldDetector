@@ -40,16 +40,15 @@ class HTMLFetcher:
         log.info(f"Screenshot saved: {filename}")
 
     @retry(
-        stop=stop_after_attempt(2),
-        wait=wait_exponential(multiplier=1, min=2, max=10),
-        retry=retry_if_exception_type((PlaywrightTimeoutError, Exception)),
-        reraise=True
+        stop=stop_after_attempt(3),  # Retry up to 3 attempts
+        wait=wait_exponential(multiplier=1, min=2, max=10),  # Exponential backoff between retries
+        retry=retry_if_exception_type((PlaywrightTimeoutError, Exception)),  # Retry on specific exceptions
+        reraise=True  # Raise the last exception if all retries fail
     )
     async def _fetch_page_content(self, url, page):
-        """Fetch page content with retries and ensure the page is fully loaded."""
+        """Helper method to fetch page content with retries."""
         log.info(f"Fetching: {url}")
         await page.goto(url, wait_until="domcontentloaded", timeout=90000)
-        await asyncio.sleep(5)
         await page.wait_for_load_state("networkidle", timeout=60000)
 
         # Ensure the page is ready
@@ -74,64 +73,47 @@ class HTMLFetcher:
                 async with async_playwright() as p:
                     # Generate a random User-Agent
                     ua = UserAgent()
+                    selected_user_agent = ua.random
 
                     # Launch browser
-                    args = [
-                        # "--disable-blink-features=AutomationControlled",  # Prevent detection of automation
-                        # "--disable-http2",
-                        # "--ignore-certificate-errors",
-                        # "--disable-gpu",
-                        # "--no-sandbox",
-                        "--disable-extensions",  # Disable all extensions
-                        "--disable-extensions-except",  # Ensure no extensions interfere
-                        "--disable-component-extensions-with-background-pages",
-                    ]
                     browser = await p.chromium.launch(
-                        headless=False,
+                        headless=True,
+                        args=["--disable-http2", "--ignore-certificate-errors"]
                     )
-                    # Create an incognito browser context
                     context = await browser.new_context(
-                        java_script_enabled=True,
-                        permissions=["geolocation", "notifications"],  # Allow key permissions
-                        user_agent= "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
-                                    "Chrome/114.0.0.0 Safari/537.36"
-                        # viewport={"width": 1280, "height": 800},
-                        # record_har_path=None,  # Ensure no data is stored
+                        user_agent=selected_user_agent,
+                        viewport={"width": 1280, "height": 800}
                     )
-                    # Clear cookies before starting
-                    await context.clear_cookies()
                     page = await context.new_page()
-                    # Add custom headers
-                    # await page.set_extra_http_headers({
-                    # "accept-language": "en-US,en;q=0.9",
-                    # "upgrade-insecure-requests": "1",
-                    # "cache-control": "max-age=0"
-                    # })
 
+                    # Apply stealth settings
                     await stealth_async(page)
 
                     # Fetch page content with retries
                     html_content = await self._fetch_page_content(url, page)
 
-                    # Take a screenshot if enabled
+                    # Take a screenshot if the flag is enabled
                     if screenshot:
-                        await self._save_screenshot(page, url, prefix="success")
+                        screenshot_path = os.path.join(
+                            self.screenshot_dir,
+                            f"{url.replace('/', '_').replace(':', '_')}_screenshot.png"
+                        )
+                        await page.screenshot(path=screenshot_path)
+                        log.info(f"Screenshot saved for {url} at {screenshot_path}")
 
-                    page.on("console", lambda msg: print(f"Console: {msg.type()} - {msg.text()}"))
-                    page.on("request", lambda req: print(f"Request: {req.url}"))
-                    page.on("response", lambda res: print(f"Response: {res.url} - {res.status}"))
-                    print(await page.evaluate("navigator.webdriver"))  # Should return None
-                    await browser.close()
                     self.cache.set(url, html_content, expire=self.ttl)
                     return url, html_content
-            except Exception as e:
-                log.error(f"Failed to fetch {url}: {e}")
-                self.failed_url_cache.set(url, "failed", expire=self.ttl)
-
-                # Save a screenshot on failure
-                if screenshot:
-                    await self._save_screenshot(page, url, prefix="failed")
+            except (Exception, PlaywrightTimeoutError) as error:
+                if isinstance(error, PlaywrightTimeoutError):
+                    log.error(f"Timeout error while fetching {url}: {error}")
+                    self.failed_url_cache.set(url, "timeout", expire=self.ttl)
+                else:
+                    log.error(f"Failed to fetch {url}: {error}")
+                    self.failed_url_cache.set(url, "failed", expire=self.ttl)
                 return url, None
+            finally:
+                if "browser" in locals():
+                    await browser.close()
 
     async def _async_fetch_urls(self, urls, screenshot=False):
         """Fetch multiple URLs concurrently using Playwright."""

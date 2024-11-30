@@ -18,6 +18,7 @@ jobs:
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
           pip install --upgrade pip
           pip install .[gpu] --extra-index-url https://download.pytorch.org/whl/cu118
+          playwright install
 
       - name: Train the model
         run: |
