@@ -31,7 +31,6 @@ dependencies = [
     "fake-useragent>=1.5.1",
     "playwright==1.39.0",
     "playwright-stealth>=1.0.4",
-    "tenacity>=9.0.0",
 ]
 
 [project.optional-dependencies]

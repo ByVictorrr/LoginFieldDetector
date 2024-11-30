@@ -5,13 +5,11 @@ from login_field_detector import HTMLFetcher
 
 APP_DIR = os.path.dirname(os.path.dirname(__file__))
 
+
 @pytest.fixture(scope="module")
 def fetcher():
     """Fixture to initialize the HTMLFetcher."""
-    num_cpus = os.cpu_count()
-    return HTMLFetcher(cache_dir=os.path.join(APP_DIR, "test_cache"),
-                       max_concurrency=min(num_cpus, 8),
-                       max_workers=min(num_cpus, 4))
+    return HTMLFetcher(cache_dir=os.path.join(APP_DIR, "test_cache"))
 
 
 def test_valid_urls(fetcher):
