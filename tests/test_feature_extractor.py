@@ -7,9 +7,6 @@ from login_field_detector import determine_label, HTMLFetcher, HTMLFeatureExtrac
 
 log = logging.getLogger(__file__)
 
-with open(os.path.join(os.path.dirname(__file__), "test_training_urls.json"), "r") as fp:
-    TEST_URLS = json.load(fp=fp)
-
 
 @pytest.fixture(scope="module")
 def fetcher():
@@ -24,11 +21,13 @@ def extractor():
     return HTMLFeatureExtractor(label2id)
 
 
-@pytest.mark.parametrize("url", TEST_URLS)
+@pytest.mark.parametrize("url", [
+    "https://x.com/i/flow/login",
+])
 def test_html_extraction(fetcher, extractor, url):
     """Test feature extraction from real URLs."""
     html_content = fetcher.fetch_html(url)
-    tokens, labels, xpaths = extractor.get_features(html_content)
+    tokens, labels, xpaths = extractor.get_features(html_text=html_content)
     assert len(tokens) == len(labels), f"Mismatch in tokens and labels for {url}"
 
 

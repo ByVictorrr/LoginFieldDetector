@@ -3,14 +3,14 @@ from os import path, makedirs, cpu_count
 from diskcache import Cache
 import asyncio
 from fake_useragent import UserAgent
-from playwright.async_api import TimeoutError as PlaywrightTimeoutError, async_playwright
+from playwright.async_api import async_playwright
 from playwright_stealth import stealth_async
 
 log = logging.getLogger(__name__)
 
 
 class HTMLFetcher:
-    def __init__(self, cache_dir=None, ttl=7 * 24 * 3600, max_concurrency=min(cpu_count(), 5)):
+    def __init__(self, cache_dir=None, ttl=7 * 24 * 3600, max_concurrency=cpu_count()):
         """
         HTMLFetcher for downloading HTML content with caching, retry, and stealth support.
 
@@ -40,76 +40,67 @@ class HTMLFetcher:
         except Exception as e:
             log.warning(f"Failed to take screenshot for {url}: {e}")
 
-    @classmethod
-    async def _fetch_page_content(cls, url, page):
-        """Helper method to fetch page content with retries."""
-        log.info(f"Fetching: {url}")
-        await page.goto(url, wait_until="domcontentloaded", timeout=30000)  # 30 seconds
-        await page.wait_for_load_state("networkidle", timeout=15000)  # 15 seconds
-
-        # Ensure the page is ready
-        if not await page.is_visible("body"):
-            raise Exception(f"Selector 'body' not visible for {url}")
-
-        # Fetch content
-        raw_content = await page.content()
-        return raw_content.encode('utf-8', errors='replace').decode('utf-8', errors='replace')
-
     async def _async_fetch_url(self, url, semaphore, screenshot=False):
-        """Fetch a single URL asynchronously with error handling."""
         async with semaphore:
             if url in self.failed_url_cache:
                 log.warning(f"Skipping previously failed URL: {url}")
                 return url, None
 
-            if url in self.cache:
-                log.info(f"Using cached HTML for {url}")
-                return url, self.cache[url]
-
             try:
                 async with async_playwright() as p:
                     browser = await p.chromium.launch(headless=True)
-                    context = await browser.new_context(viewport={"width": 1024, "height": 768})
-                    page = await context.new_page()
+                    context = await browser.new_context(
+                        viewport={"width": 1280, "height": 800},
+                        locale="en-US",
+                        user_agent=UserAgent().chrome,
 
+                    )
+                    page = await context.new_page()
+                    await stealth_async(page)
+
+                    # Fetch the page
                     log.info(f"Fetching: {url}")
-                    await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                    await page.goto(url, wait_until="domcontentloaded", timeout=60000)
+                    await page.wait_for_load_state("networkidle", timeout=50000)
+                    # Wait for page to stabilize
+                    try:
+                        await page.wait_for_selector("body", state="visible", timeout=5000)
+                    except Exception as e:
+                        log.warning(f"Selector 'body' not visible for {url}: {e}. Proceeding...")
 
                     # Fetch HTML content
                     html_content = await page.content()
                     self.cache.set(url, html_content, expire=self.ttl)
 
-                    # Take a screenshot if enabled
+                    # Take a screenshot if needed
                     if screenshot:
                         try:
                             await self._save_screenshot(page, url, prefix="success")
                         except Exception as e:
-                            log.error(f"Screenshot failed for {url}: {e}")
+                            log.warning(f"Failed to take screenshot for {url}: {e}")
 
-                    return url, html_content
+                    return html_content
 
-            except PlaywrightTimeoutError:
-                log.error(f"Timeout error for {url}")
-                self.failed_url_cache.set(url, "timeout", expire=self.ttl)
             except Exception as e:
-                log.error(f"Error fetching {url}: {e}")
+                log.warning(f"Error fetching {url}: {e}")
                 self.failed_url_cache.set(url, "failed", expire=self.ttl)
-            finally:
-                if "browser" in locals():
-                    await browser.close()
-                if "context" in locals():
-                    await context.close()
-                if "page" in locals():
-                    await page.close()
+                return None
 
     async def _async_fetch_urls(self, urls, screenshot=False):
         """Fetch multiple URLs concurrently using Playwright."""
         semaphore = asyncio.Semaphore(self.max_concurrency)
         tasks = [self._async_fetch_url(url, semaphore, screenshot=screenshot) for url in urls]
+
         results = {}
-        for url, html in await asyncio.gather(*tasks):
-            if html:
-                results[url] = html
+        task_results = await asyncio.gather(*tasks, return_exceptions=True)
+
+        for task_result, url in zip(task_results, urls):
+            if isinstance(task_result, Exception):
+                log.warning(f"Error fetching {url}: {task_result}")
+                self.failed_url_cache.set(url, "error", expire=self.ttl)
+            else:
+                results[url] = task_result
+
         return results
 
     def fetch_all(self, urls, force=False, screenshot=False):
