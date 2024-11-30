@@ -50,7 +50,8 @@ git clone https://github.com/ByVictorrr/LoginFieldDetector.git
 cd LoginFieldDetector
 
 # Install dependencies
-pip install -e .[cpu,test]
+pip install -e .[gpu,test]
+playwright install
 ```
 
 ### Running Tests
@@ -68,6 +69,6 @@ We welcome contributions! Please fork the repository, make changes, and submit a
 ## Links
 - **Homepage**: [ByVictorrr on GitHub](https://github.com/ByVictorrr)
 - **Repository**: [LoginFieldDetector](https://github.com/ByVictorrr/LoginFieldDetector)
-- **Documentation**": [Docs]()
+- **Documentation**: [Docs](https://byvictorrr.github.io/LoginFieldDetector)
 - **Dataset**: `dataset/training_urls.json`
 
