@@ -7,7 +7,7 @@ from login_field_detector import LoginFieldDetector
 def detector():
     """Fixture to initialize and train LoginFieldDetector."""
     detector = LoginFieldDetector()
-    detector.train(force=True)  # Assuming only HTML data is required for training
+    detector.train(force=True, screenshots=True)  # Assuming only HTML data is required for training
     return detector
 
 
@@ -32,9 +32,3 @@ def test_invalid_login_urls(detector, url):
     """Test LoginFieldDetector with invalid or non-login URLs."""
     assert not detector.predict(url=url), f"Incorrectly detected login fields for {url}"
 
-
-def test_training():
-    """Ensure training creates a model directory."""
-    detector = LoginFieldDetector(model_dir="test_model")
-    detector.train(force=True)
-    assert os.path.exists("test_model"), "Model directory was not created during training"

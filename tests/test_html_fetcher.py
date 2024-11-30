@@ -1,12 +1,19 @@
 import os
 import pytest
-from html_fetcher import HTMLFetcher
+from login_field_detector import HTMLFetcher
 
 
 @pytest.fixture(scope="module")
 def fetcher():
     """Fixture to initialize the HTMLFetcher."""
-    return HTMLFetcher(cache_dir="./test_cache", max_concurrency=3)
+    return HTMLFetcher(cache_dir=os.path.join(os.path.dirname(__file__), "test_cache"), max_concurrency=3)
+
+
+def test_valid_url(fetcher):
+    """Test handling of redirects."""
+    url = "https://x.com/i/flow/login"  # Redirects to https://github.com
+    html_content = fetcher.fetch_html(url, screenshot=True, force=True)
+    assert html_content is not None, f"Failed to handle redirect for {url}"
 
 
 def test_fetch_valid_url(fetcher):

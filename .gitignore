@@ -12,7 +12,7 @@ logs/
 fine_tuned_model/
 html_cache/
 docs/build
-
+test_cache/
 # Test web server
 certs/
 node_modules/

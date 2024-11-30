@@ -12,7 +12,8 @@ log = logging.getLogger(__name__)
 
 class HTMLFetcher:
     def __init__(self, cache_dir=None, ttl=7 * 24 * 3600, max_workers=10, max_concurrency=5):
-        """HTMLFetcher for downloading HTML content with caching and retry support.
+        """
+        HTMLFetcher for downloading HTML content with caching, retry, and stealth support.
 
         :param cache_dir: Directory for persistent cache storage.
         :param ttl: Time-to-live (in seconds) for the cache.
@@ -20,6 +21,7 @@ class HTMLFetcher:
         :param max_concurrency: Maximum number of concurrent Playwright tasks.
         """
         cache_dir = cache_dir if cache_dir else os.path.join(os.path.dirname(os.path.dirname(__file__)), "html_cache")
+        os.makedirs(cache_dir, exist_ok=True)
         self.cache = Cache(cache_dir)
         self.failed_url_cache = Cache(f"{cache_dir}/failed_urls")
         self.screenshot_dir = os.path.join(cache_dir, "screenshots")
@@ -28,16 +30,26 @@ class HTMLFetcher:
         self.max_workers = max_workers
         self.max_concurrency = max_concurrency
 
+    async def _save_screenshot(self, page, url, prefix="failed"):
+        """Save a screenshot of the page for debugging."""
+        filename = os.path.join(
+            self.screenshot_dir,
+            f"{prefix}_{url.replace('/', '_').replace(':', '_')}.png"
+        )
+        await page.screenshot(path=filename)
+        log.info(f"Screenshot saved: {filename}")
+
     @retry(
-        stop=stop_after_attempt(3),  # Retry up to 3 attempts
-        wait=wait_exponential(multiplier=1, min=2, max=10),  # Exponential backoff between retries
-        retry=retry_if_exception_type((PlaywrightTimeoutError, Exception)),  # Retry on specific exceptions
-        reraise=True  # Raise the last exception if all retries fail
+        stop=stop_after_attempt(2),
+        wait=wait_exponential(multiplier=1, min=2, max=10),
+        retry=retry_if_exception_type((PlaywrightTimeoutError, Exception)),
+        reraise=True
     )
     async def _fetch_page_content(self, url, page):
-        """Helper method to fetch page content with retries."""
+        """Fetch page content with retries and ensure the page is fully loaded."""
         log.info(f"Fetching: {url}")
         await page.goto(url, wait_until="domcontentloaded", timeout=90000)
+        await asyncio.sleep(5)
         await page.wait_for_load_state("networkidle", timeout=60000)
 
         # Ensure the page is ready
@@ -62,40 +74,63 @@ class HTMLFetcher:
                 async with async_playwright() as p:
                     # Generate a random User-Agent
                     ua = UserAgent()
-                    selected_user_agent = ua.random
 
                     # Launch browser
+                    args = [
+                        # "--disable-blink-features=AutomationControlled",  # Prevent detection of automation
+                        # "--disable-http2",
+                        # "--ignore-certificate-errors",
+                        # "--disable-gpu",
+                        # "--no-sandbox",
+                        "--disable-extensions",  # Disable all extensions
+                        "--disable-extensions-except",  # Ensure no extensions interfere
+                        "--disable-component-extensions-with-background-pages",
+                    ]
                     browser = await p.chromium.launch(
-                        headless=True,
-                        args=["--disable-http2", "--ignore-certificate-errors"]
+                        headless=False,
                     )
+                    # Create an incognito browser context
                     context = await browser.new_context(
-                        user_agent=selected_user_agent,
-                        viewport={"width": 1280, "height": 800}
+                        java_script_enabled=True,
+                        permissions=["geolocation", "notifications"],  # Allow key permissions
+                        user_agent= "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) "
+                                    "Chrome/114.0.0.0 Safari/537.36"
+                        # viewport={"width": 1280, "height": 800},
+                        # record_har_path=None,  # Ensure no data is stored
                     )
+                    # Clear cookies before starting
+                    await context.clear_cookies()
                     page = await context.new_page()
+                    # Add custom headers
+                    # await page.set_extra_http_headers({
+                    # "accept-language": "en-US,en;q=0.9",
+                    # "upgrade-insecure-requests": "1",
+                    # "cache-control": "max-age=0"
+                    # })
 
-                    # Apply stealth settings
                     await stealth_async(page)
 
                     # Fetch page content with retries
                     html_content = await self._fetch_page_content(url, page)
 
-                    # Take a screenshot if the flag is enabled
+                    # Take a screenshot if enabled
                     if screenshot:
-                        screenshot_path = os.path.join(
-                            self.screenshot_dir,
-                            f"{url.replace('/', '_').replace(':', '_')}_screenshot.png"
-                        )
-                        await page.screenshot(path=screenshot_path)
-                        log.info(f"Screenshot saved for {url} at {screenshot_path}")
+                        await self._save_screenshot(page, url, prefix="success")
 
+                    page.on("console", lambda msg: print(f"Console: {msg.type()} - {msg.text()}"))
+                    page.on("request", lambda req: print(f"Request: {req.url}"))
+                    page.on("response", lambda res: print(f"Response: {res.url} - {res.status}"))
+                    print(await page.evaluate("navigator.webdriver"))  # Should return None
                     await browser.close()
                     self.cache.set(url, html_content, expire=self.ttl)
                     return url, html_content
             except Exception as e:
                 log.error(f"Failed to fetch {url}: {e}")
                 self.failed_url_cache.set(url, "failed", expire=self.ttl)
+
+                # Save a screenshot on failure
+                if screenshot:
+                    await self._save_screenshot(page, url, prefix="failed")
                 return url, None
 
     async def _async_fetch_urls(self, urls, screenshot=False):
@@ -118,7 +153,6 @@ class HTMLFetcher:
         :return: A dictionary mapping URLs to their HTML content.
         """
         log.info("Fetching all URLs...")
-        # If force is enabled, clear failed cache for these URLs
         if force:
             for url in urls:
                 if url in self.failed_url_cache:
@@ -128,7 +162,6 @@ class HTMLFetcher:
                     log.info(f"Deleting {url} from cache")
                     self.cache.delete(url)
 
-        # Call the asynchronous fetcher synchronously
         return asyncio.run(self._async_fetch_urls(urls, screenshot=screenshot))
 
     def fetch_html(self, url, force=False, screenshot=False):
