@@ -2,7 +2,6 @@
 
   "https://www.crunchyroll.com/login": "verify you are human. This may take a few seconds (cloudflare)",
   "https://account.mapbox.com/auth/signin/": "could not load, works when i type it in",
-  "https://www.hulu.com/user/login": "404",
   "https://www.meetup.com/login": "502 Bad Gateway, but it works when i type it in",
   "https://www.skype.com/en/login": "The request is blocked (microsoft login - delete)",
   "https://www.stackoverflow.com/account/login": "Verify you are human by completing the action below (cloudflare button)",
@@ -56,22 +55,28 @@
   "https://trello.com/login": "blank screen",
   "https://www.wordpress.com/log-in": "not fully loaded",
   "https://www.agoda.com/account/signin.html": "still loading",
-  "https://www.alibaba.com/login": "404 - take out",
   "https://www.amcplus.com/login": "blank screen",
   "https://www.apnews.com/login": "spinner still spinning",
-  "https://www.apple.com/apple-id/sign-in": "404 - take out",
-  "https://www.authy.com/signin": "no login - take out",
-  "https://www.behance.net/login": "take out",
   "https://www.betterment.com/login": "blank screen",
-  "https://www.bing.com/account": "take out",
-  "https://www.bing.com/account/general": "take out",
   "https://bitbucket.org/account/signin/": "duplicate take out; blank screen too",
-  "https://www.blogger.com/go/signin": "take out",
   "https://www.bovada.lv/?overlay=login":  "not loaded fully",
   "https://www.coinbase.com/signin": "spinner still spinning",
   "https://www.costco.com/LogonForm": "blank screen",
   "https://www.dailymotion.com/login": "not loaded fully",
   "https://www.disneyplus.com/login": "spinner still spinning",
+  "https://www.dropbox.com/login": "blank screen",
+  "https://www.dunkindonuts.com/en/sign-in": "spinner still spinning",
+  "https://www.elasticsearch.com/login": "blank screen",
+  "https://www.epicgames.com/id/login": "blank screen",
+  "https://www.etsy.com/signin": "We want to make sure it is actually you we are dealing with and not a robot (captcha puzzle)",
+  "https://www.eventbrite.com/signin": "complete the security check before continuing. This step verifies that you are not a bot, which helps to protect your account and prevent spam.",
+  "https://www.farmers.com/login":  "blank screen",
+  "https://www.flickr.com/signin":  "loading still",
+  "https://www.freeletics.com/en/auth/login": "not loaded fully",
+  "https://www.gettyimages.com/sign-in": "Please click below to validate you are a real user (i'm not a robot checkbox)",
+  "https://www.gitlab.com/users/sign_in": "Verifying you are human. This may take a few seconds (cloudflare)",
+
+
 
 
 }
