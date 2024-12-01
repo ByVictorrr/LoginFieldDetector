@@ -69,7 +69,13 @@
 <li class="toctree-l4"><a class="reference internal" href="#login_field_detector.html_fetcher.HTMLFetcher"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher</span></code></a></li>
 </ul>
 </li>
-<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector">Module contents</a></li>
+<li class="toctree-l3"><a class="reference internal" href="#module-login_field_detector">Module contents</a><ul>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.HTMLFeatureExtractor"><code class="docutils literal notranslate"><span class="pre">HTMLFeatureExtractor</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.HTMLFetcher"><code class="docutils literal notranslate"><span class="pre">HTMLFetcher</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.LoginFieldDetector"><code class="docutils literal notranslate"><span class="pre">LoginFieldDetector</span></code></a></li>
+<li class="toctree-l4"><a class="reference internal" href="#login_field_detector.determine_label"><code class="docutils literal notranslate"><span class="pre">determine_label()</span></code></a></li>
+</ul>
+</li>
 </ul>
 </li>
 </ul>
@@ -142,13 +148,14 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.process_urls">
-<span class="sig-name descname"><span class="pre">process_urls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o_label_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.process_urls" title="Link to this definition"></a></dt>
-<dd><p>Preprocess, balance data, and include bounding boxes.</p>
+<span class="sig-name descname"><span class="pre">process_urls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o_label_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.process_urls" title="Link to this definition"></a></dt>
+<dd><p>Preprocess the urls for training the model and balance the data</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>urls</strong> – List of URLs to process.</p></li>
 <li><p><strong>force</strong> – Force re-fetching all URLs.</p></li>
+<li><p><strong>screenshots</strong> – Whether you want to screenshot the urls being processed</p></li>
 <li><p><strong>o_label_ratio</strong> – Ratio of ‘UNLABELED’ labels to retain.</p></li>
 </ul>
 </dd>
@@ -160,7 +167,7 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="login_field_detector.field_detector.LoginFieldDetector.train">
-<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.train" title="Link to this definition"></a></dt>
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.field_detector.LoginFieldDetector.train" title="Link to this definition"></a></dt>
 <dd><p>Train the model.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
@@ -168,6 +175,7 @@
 <li><p><strong>urls</strong> – List of URLs to fetch and process for training.</p></li>
 <li><p><strong>epochs</strong> – Number of training epochs.</p></li>
 <li><p><strong>batch_size</strong> – Batch size for training.</p></li>
+<li><p><strong>screenshots</strong> – Whether you want to screenshot the urls being processed</p></li>
 <li><p><strong>force</strong> – Force re-fetching and reprocessing all URLs.</p></li>
 </ul>
 </dd>
@@ -256,23 +264,18 @@
 <span id="login-field-detector-html-fetcher-module"></span><h2>login_field_detector.html_fetcher module<a class="headerlink" href="#module-login_field_detector.html_fetcher" title="Link to this heading"></a></h2>
 <dl class="py class">
 <dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher">
-<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.html_fetcher.</span></span><span class="sig-name descname"><span class="pre">HTMLFetcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">604800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_workers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher" title="Link to this definition"></a></dt>
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.html_fetcher.</span></span><span class="sig-name descname"><span class="pre">HTMLFetcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">604800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_concurrency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher" title="Link to this definition"></a></dt>
 <dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
 <dl class="py method">
-<dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher.create_scraper">
-<span class="sig-name descname"><span class="pre">create_scraper</span></span><span class="sig-paren">(</span><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.create_scraper" title="Link to this definition"></a></dt>
-<dd><p>Create a Cloudscraper instance for handling anti-bot challenges.</p>
-</dd></dl>
-
-<dl class="py method">
 <dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher.fetch_all">
-<span class="sig-name descname"><span class="pre">fetch_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_all" title="Link to this definition"></a></dt>
-<dd><p>Fetch HTML content for multiple URLs concurrently.</p>
+<span class="sig-name descname"><span class="pre">fetch_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_all" title="Link to this definition"></a></dt>
+<dd><p>Synchronously fetch multiple URLs.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>urls</strong> – List of URLs to fetch.</p></li>
 <li><p><strong>force</strong> – Force fetching even if URLs are cached or marked as failed.</p></li>
+<li><p><strong>screenshot</strong> – Whether to take screenshots of the pages.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
@@ -283,21 +286,18 @@
 
 <dl class="py method">
 <dt class="sig sig-object py" id="login_field_detector.html_fetcher.HTMLFetcher.fetch_html">
-<span class="sig-name descname"><span class="pre">fetch_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">use_scraper</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">True</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_html" title="Link to this definition"></a></dt>
-<dd><p>Fetch HTML content for a given URL with retry support.</p>
+<span class="sig-name descname"><span class="pre">fetch_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.html_fetcher.HTMLFetcher.fetch_html" title="Link to this definition"></a></dt>
+<dd><p>Synchronously fetch a single URL.</p>
 <dl class="field-list simple">
 <dt class="field-odd">Parameters<span class="colon">:</span></dt>
 <dd class="field-odd"><ul class="simple">
 <li><p><strong>url</strong> – URL to fetch.</p></li>
-<li><p><strong>force</strong> – Force fetching even if cached or marked as failed.</p></li>
-<li><p><strong>use_scraper</strong> – Whether to use Cloudscraper for fetching.</p></li>
+<li><p><strong>force</strong> – Force fetching even if URLs are cached or marked as failed.</p></li>
+<li><p><strong>screenshot</strong> – Whether to take a screenshot of the page.</p></li>
 </ul>
 </dd>
 <dt class="field-even">Returns<span class="colon">:</span></dt>
-<dd class="field-even"><p>HTML content as a string.</p>
-</dd>
-<dt class="field-odd">Raises<span class="colon">:</span></dt>
-<dd class="field-odd"><p><strong>requests.exceptions.RequestException</strong> – If the fetch fails.</p>
+<dd class="field-even"><p>HTML content as a string or None if failed.</p>
 </dd>
 </dl>
 </dd></dl>
@@ -307,6 +307,140 @@
 </section>
 <section id="module-login_field_detector">
 <span id="module-contents"></span><h2>Module contents<a class="headerlink" href="#module-login_field_detector" title="Link to this heading"></a></h2>
+<dl class="py class">
+<dt class="sig sig-object py" id="login_field_detector.HTMLFeatureExtractor">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.</span></span><span class="sig-name descname"><span class="pre">HTMLFeatureExtractor</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">label2id</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">oauth_providers</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.HTMLFeatureExtractor" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.HTMLFeatureExtractor.get_features">
+<span class="sig-name descname"><span class="pre">get_features</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">html_text</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.HTMLFeatureExtractor.get_features" title="Link to this definition"></a></dt>
+<dd><p>Extract tokens, labels, xpaths, and bounding boxes from an HTML file.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="login_field_detector.HTMLFetcher">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.</span></span><span class="sig-name descname"><span class="pre">HTMLFetcher</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">cache_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">ttl</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">604800</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">max_concurrency</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">4</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.HTMLFetcher" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.HTMLFetcher.fetch_all">
+<span class="sig-name descname"><span class="pre">fetch_all</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.HTMLFetcher.fetch_all" title="Link to this definition"></a></dt>
+<dd><p>Synchronously fetch multiple URLs.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>urls</strong> – List of URLs to fetch.</p></li>
+<li><p><strong>force</strong> – Force fetching even if URLs are cached or marked as failed.</p></li>
+<li><p><strong>screenshot</strong> – Whether to take screenshots of the pages.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>A dictionary mapping URLs to their HTML content.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.HTMLFetcher.fetch_html">
+<span class="sig-name descname"><span class="pre">fetch_html</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshot</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.HTMLFetcher.fetch_html" title="Link to this definition"></a></dt>
+<dd><p>Synchronously fetch a single URL.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>url</strong> – URL to fetch.</p></li>
+<li><p><strong>force</strong> – Force fetching even if URLs are cached or marked as failed.</p></li>
+<li><p><strong>screenshot</strong> – Whether to take a screenshot of the page.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>HTML content as a string or None if failed.</p>
+</dd>
+</dl>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py class">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector">
+<em class="property"><span class="pre">class</span><span class="w"> </span></em><span class="sig-prename descclassname"><span class="pre">login_field_detector.</span></span><span class="sig-name descname"><span class="pre">LoginFieldDetector</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">model_dir</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">['UNLABELED',</span> <span class="pre">'USERNAME',</span> <span class="pre">'PHONE_NUMBER',</span> <span class="pre">'PASSWORD',</span> <span class="pre">'LOGIN_BUTTON',</span> <span class="pre">'TWO_FACTOR_AUTH',</span> <span class="pre">'SOCIAL_LOGIN_BUTTONS',</span> <span class="pre">'CAPTCHA',</span> <span class="pre">'LANGUAGE_SWITCH',</span> <span class="pre">'FORGOT_PASSWORD',</span> <span class="pre">'SIGN_UP',</span> <span class="pre">'REMEMBER_ME',</span> <span class="pre">'HELP_LINK',</span> <span class="pre">'PRIVACY_POLICY',</span> <span class="pre">'TERMS_OF_SERVICE',</span> <span class="pre">'NAVIGATION_LINK',</span> <span class="pre">'BANNER',</span> <span class="pre">'ADVERTISEMENTS',</span> <span class="pre">'COOKIE_POLICY',</span> <span class="pre">'IMPRINT']</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">device</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector" title="Link to this definition"></a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Model for login field detection using BERT.</p>
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector.create_dataset">
+<span class="sig-name descname"><span class="pre">create_dataset</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">inputs</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector.create_dataset" title="Link to this definition"></a></dt>
+<dd><p>Align 1D labels with tokenized inputs.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector.evaluate">
+<span class="sig-name descname"><span class="pre">evaluate</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">dataset</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector.evaluate" title="Link to this definition"></a></dt>
+<dd><p>Evaluate the model on a dataset and plot confusion matrix.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector.plot_confusion_matrix">
+<span class="sig-name descname"><span class="pre">plot_confusion_matrix</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">true_labels</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">pred_labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector.plot_confusion_matrix" title="Link to this definition"></a></dt>
+<dd><p>Plot confusion matrix with improved x-axis label spacing.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector.predict">
+<span class="sig-name descname"><span class="pre">predict</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">url</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">html_content</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">probability_threshold</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.9</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector.predict" title="Link to this definition"></a></dt>
+<dd><p>Make predictions on new HTML content.</p>
+<p>Allowing multiple entries per label above a specified probability threshold and sorted by probability.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector.process_urls">
+<span class="sig-name descname"><span class="pre">process_urls</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">o_label_ratio</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">0.5</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector.process_urls" title="Link to this definition"></a></dt>
+<dd><p>Preprocess the urls for training the model and balance the data</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>urls</strong> – List of URLs to process.</p></li>
+<li><p><strong>force</strong> – Force re-fetching all URLs.</p></li>
+<li><p><strong>screenshots</strong> – Whether you want to screenshot the urls being processed</p></li>
+<li><p><strong>o_label_ratio</strong> – Ratio of ‘UNLABELED’ labels to retain.</p></li>
+</ul>
+</dd>
+<dt class="field-even">Returns<span class="colon">:</span></dt>
+<dd class="field-even"><p>Filtered inputs and labels.</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector.train">
+<span class="sig-name descname"><span class="pre">train</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">urls</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">None</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">epochs</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">10</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">batch_size</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">16</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">force</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em>, <em class="sig-param"><span class="n"><span class="pre">screenshots</span></span><span class="o"><span class="pre">=</span></span><span class="default_value"><span class="pre">False</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector.train" title="Link to this definition"></a></dt>
+<dd><p>Train the model.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters<span class="colon">:</span></dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>urls</strong> – List of URLs to fetch and process for training.</p></li>
+<li><p><strong>epochs</strong> – Number of training epochs.</p></li>
+<li><p><strong>batch_size</strong> – Batch size for training.</p></li>
+<li><p><strong>screenshots</strong> – Whether you want to screenshot the urls being processed</p></li>
+<li><p><strong>force</strong> – Force re-fetching and reprocessing all URLs.</p></li>
+</ul>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py method">
+<dt class="sig sig-object py" id="login_field_detector.LoginFieldDetector.visualize_class_distribution">
+<span class="sig-name descname"><span class="pre">visualize_class_distribution</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">labels</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.LoginFieldDetector.visualize_class_distribution" title="Link to this definition"></a></dt>
+<dd><p>Plot class distribution.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt class="sig sig-object py" id="login_field_detector.determine_label">
+<span class="sig-prename descclassname"><span class="pre">login_field_detector.</span></span><span class="sig-name descname"><span class="pre">determine_label</span></span><span class="sig-paren">(</span><em class="sig-param"><span class="n"><span class="pre">tag</span></span></em><span class="sig-paren">)</span><a class="headerlink" href="#login_field_detector.determine_label" title="Link to this definition"></a></dt>
+<dd><p>Determine the label of an HTML tag based on patterns.</p>
+</dd></dl>
+
 </section>
 </section>
 
