@@ -19,6 +19,14 @@ def is_cloud_flare_checkbox(html_content: str, iframes: list):
                                                                  iframe.get_attribute('src') for iframe in iframes)
 
 
+async def is_google_recaptcha(page: Page, html_content: str) -> bool:
+    """Detects the presence of Google reCAPTCHA on the page."""
+    return "please solve the recaptcha below to verify you're not a robot" in html_content and await page.query_selector(
+        "iframe[src*='https://www.google.com/recaptcha/']")
+
+
+
+
 async def wait_for_page_stabilization(page: Page) -> None:
     """Waits for the page layout to stabilize by monitoring scroll height."""
     try:
@@ -90,6 +98,33 @@ class HTMLFetcher:
             log.warning(f"Error detecting CAPTCHA for {url}: {e}")
             self.failed_url_cache.set(url, "captcha_error", expire=ttl)
         return False
+
+    async def handle_google_recaptcha(self, page: Page, url: str, ttl: int) -> bool:
+        """Attempts to solve Google reCAPTCHA by clicking the 'I'm not a robot' checkbox."""
+        try:
+            # Locate the reCAPTCHA iframe
+            recaptcha_iframe = await page.query_selector("iframe[src*='https://www.google.com/recaptcha/']")
+            if not recaptcha_iframe:
+                log.warning("No Google reCAPTCHA iframe found.")
+                self.failed_url_cache.set(url, "captcha_detected", expire=ttl)
+                return False
+
+            # Switch to the iframe
+            frame = await recaptcha_iframe.content_frame()
+            # Find and click the checkbox
+            checkbox = await frame.query_selector("div.recaptcha-checkbox-border")
+            if checkbox:
+                await checkbox.click()
+                log.info("Clicked reCAPTCHA checkbox.")
+                await asyncio.sleep(3)  # Wait for reCAPTCHA validation
+                return True
+            else:
+                log.warning("Google reCAPTCHA checkbox not found.")
+                return False
+        except Exception as e:
+            log.error(f"Error handling Google reCAPTCHA: {e}")
+            self.failed_url_cache.set(url, "recaptcha_error", expire=ttl)
+            return False
 
     async def navigate_with_retries(self, page: Page, url: str, retries: int = 3) -> bool:
         """
