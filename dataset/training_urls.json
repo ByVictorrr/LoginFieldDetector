@@ -320,7 +320,7 @@
   "https://www.digitalocean.com/login",
   "https://www.linode.com/login",
   "https://www.hubspot.com/login",
-  "https://www.salesforce.com/login",
+  "https://login.salesforce.com/",
   "https://www.tableau.com/login",
   "https://account.mongodb.com/account/login",
   "https://www.postgresql.org/account/login/",
@@ -386,7 +386,6 @@
   "https://www.sleepcycle.com/login",
   "https://www.fitplanapp.com/login/",
   "https://www.mywellness.com/login/User/Login/",
-  "https://login3.id.hp.com/login3",
   "https://account.toyota.com/api/UI/Login",
   "https://owners.hyundaiusa.com/us/en/index",
   "https://www.kfc.com/login",
@@ -499,7 +498,6 @@
   "https://www.pornhub.com/login",
   "https://accounts.logme.in/login.aspx",
   "https://account.corel.com/accounts/user/",
-  "https://account.pbs.org/",
-  ""
+  "https://account.pbs.org/"
 
 ]

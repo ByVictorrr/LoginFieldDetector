@@ -2,7 +2,6 @@
 
 
   "https://www.crunchyroll.com/login": "verify you are human. This may take a few seconds (cloudflare)",
-  "https://account.mapbox.com/auth/signin/": "could not load, works when i type it in",
   "https://www.meetup.com/login": "502 Bad Gateway, but it works when i type it in",
   "https://www.skype.com/en/login": "The request is blocked (microsoft login - delete)",
   "https://www.stackoverflow.com/account/login": "Verify you are human by completing the action below (cloudflare button)",
@@ -10,11 +9,6 @@
   "https://accounts.shopify.com/lookup": "Your connected needs to be verified before you can proceed",
   "https://identity.metlife.com/public/login": "login page not loaded - main page to select which login type is loaded",
   "https://login.fidelity.com/ftgw/Fas/Fidelity/RtlCust/Login/Init": "not fully loaded",
-  "https://login.salesforce.com/": "not fully loaded",
- "https://login3.id.hp.com/login3": "spinner still spinning",
-  "https://mail.aol.com/webmail-std/en-us/suite": "wrong url",
-  "https://manage.goguardian.com/login": "not fully loaded",
- "https://monitoring.solaredge.com/solaredge-web/p/login": "blank screen",
  "https://my.surfshark.com/login": "Verifying you are human. This may take a few seconds. (cloudflare)",
  "https://na.chargepoint.com/login": "spinner still spinning",
   "https://online.citi.com/US/login.do": "Invalid URL. The requested URL '[no URL]', is valid. https://errors.edgesuite.net/9.5d5ed617.1732958403.831857a2",
@@ -52,7 +46,6 @@
   "https://www.farmers.com/login":  "blank screen",
   "https://www.flickr.com/signin":  "loading still",
   "https://www.freeletics.com/en/auth/login": "not loaded fully",
-  "https://www.gettyimages.com/sign-in": "Please click below to validate you are a real user (i'm not a robot checkbox)",
   "https://www.gitlab.com/users/sign_in": "Verifying you are human. This may take a few seconds (cloudflare)",
   "https://www.godaddy.com/login": "Still loading",
   "https://www.guardianlife.com/login": "still loading",
