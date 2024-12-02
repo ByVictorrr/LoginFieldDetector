@@ -35,7 +35,7 @@ def generate_language_switch():
             if name != native:
                 langs.append(native)
         except Exception as e:
-            print(f"Error processing language code '{code}': {e}")
+            log.debug(f"Error processing language code '{code}': {e}")
     return "|".join(map(re.escape, set(langs)))  # Escape for regex safety
 
 

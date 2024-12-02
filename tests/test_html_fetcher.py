@@ -14,8 +14,12 @@ def fetcher():
 
 def test_valid_urls(fetcher):
     """Test handling of redirects."""
+    with open(os.path.join(APP_DIR, "dataset", "failed_urls.json"), "r") as fp:
+        failed_urls = json.load(fp).keys()
+    with open(os.path.join(APP_DIR, "dataset", "failed_urls_test1.json"), "r") as fp:
+        training_urls = json.load(fp).keys()
     with open(os.path.join(APP_DIR, "dataset", "training_urls.json"), "r") as fp:
-        training_urls = json.load(fp)
+        urls = json.load(fp)
     html_content_list = fetcher.fetch_all(training_urls, force=True, screenshot=True).values()
     assert len(html_content_list) >= .8 * len(training_urls), \
         f"Failed to fetch at least 80 percent of the training_urls"

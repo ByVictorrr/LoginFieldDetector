@@ -24,7 +24,7 @@
   "https://www.match.com/login",
   "https://www.eharmony.com/login/",
   "https://www.netflix.com/login",
-  "https://www.disneyplus.com/login",
+  "https://www.disneyplus.com/identity/login/enter-email",
   "https://auth.max.com/login",
   "https://www.spotify.com/login",
   "https://www.pandora.com/account/sign-in",
@@ -103,7 +103,7 @@
   "https://www.instacart.com/login",
   "https://dias.bank.truist.com/ui/login",
   "https://www.verizon.com/signin",
-  "https://slack.com/signin",
+  "https://slack.com/signin#/signin",
   "https://www.basecamp.com/login",
   "https://www.scribd.com/login",
   "https://account.booking.com/sign-in",
@@ -281,7 +281,7 @@
   "https://teamtreehouse.com/signin",
   "https://my.babbel.com/en/authentication/login/email",
   "https://app.memrise.com/signin",
-  "https://www.nationalgridus.com/login",
+  "https://www1.nationalgridus.com/SignIn",
   "https://www.coned.com/en/login",
   "https://www.statefarm.com/login",
   "https://ecams.geico.com/login",
@@ -377,7 +377,7 @@
   "https://www.ifit.com/login",
   "https://www.bodybuilding.com/combined-signin",
   "https://www.fitnessblender.com/login",
-  "https://www.orangetheory.com/login",
+  "https://www.customercenter.orangetheory.com/",
   "https://www.equinox.com/login",
   "https://www.zumba.com/en-US/login",
   "https://www.headspace.com/login",
@@ -504,9 +504,7 @@
   "https://audiomack.com/login",
   "https://secure.chase.com/web/auth/dashboard",
   "https://login.alibaba.com/",
-
-
   "https://www.pornhub.com/login",
-
-  "https://accounts.logme.in/login.aspx?nocipsso=1"
+  "https://accounts.logme.in/login.aspx",
+  "https://account.corel.com/accounts/user/"
 ]
