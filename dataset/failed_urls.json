@@ -1,27 +1,14 @@
 {
 
+
   "https://www.crunchyroll.com/login": "verify you are human. This may take a few seconds (cloudflare)",
   "https://account.mapbox.com/auth/signin/": "could not load, works when i type it in",
   "https://www.meetup.com/login": "502 Bad Gateway, but it works when i type it in",
   "https://www.skype.com/en/login": "The request is blocked (microsoft login - delete)",
   "https://www.stackoverflow.com/account/login": "Verify you are human by completing the action below (cloudflare button)",
-  "https://account.lenovo.com/us/en/account/login/index.html": "Access Denied. You don't have permission to access <url> on this server",
-  "https://account.pbs.org/": "403 Forbidden",
-  "https://account.samsung.com/accounts/v1/samsung_com_us/signIn": "Couldn't load webpage; 400: Bad request",
-  "https://account.tidal.com/": "you have been blocked",
-  "https://account.ubisoft.com/en-GB/login": "spinner still spinning",
   "https://accounts-tax.intuit.com/app/turbotaxonline": "spinner still spinning",
   "https://accounts.shopify.com/lookup": "Your connected needs to be verified before you can proceed",
-  "https://accounts.zoho.com/signin": "spinner still spinning",
-  "https://app.smile.io/auth/login": "spinner still spinning",
-  "https://auth.meethue.com/u/login?ui_locales=en": "Please select you country/region",
-  "https://auth.onepeloton.com/login": "blank screen",
-  "https://authorize.dailywire.com/login": "spinner still spinning",
-
-  "https://www.bitbucket.org/account/signin": "blank screen",
   "https://id.atlassian.com/login": "blank screen",
-
-  "https://doctorondemand.com/login": "blank screen",
   "https://figshare.com/account/login": "javascript not loaded fully",
   "https://gab.com/auth/sign_in": "Sorry, you have been blocked. you are unable to access gab.com",
   "https://id.trimble.com/ui/sign_in.html": "spinner still spinning",
@@ -57,7 +44,6 @@
   "https://www.amcplus.com/login": "blank screen",
   "https://www.apnews.com/login": "spinner still spinning",
   "https://www.betterment.com/login": "blank screen",
-  "https://bitbucket.org/account/signin/": "duplicate take out; blank screen too",
   "https://www.bovada.lv/?overlay=login":  "not loaded fully",
   "https://www.coinbase.com/signin": "spinner still spinning",
   "https://www.costco.com/LogonForm": "blank screen",

@@ -241,7 +241,6 @@
   "https://www.musicaneo.com/login.html",
   "https://pineapparel.com/login",
   "https://app.zenserp.com/login",
-  "https://jenx.com/j3nxlogin",
   "https://lacasatour.com/login",
   "https://platform.nefta.io/login",
   "https://orsensports.com/account/login",
@@ -268,7 +267,6 @@
   "https://squareup.com/login",
   "https://login.fidelity.com/ftgw/Fas/Fidelity/RtlCust/Login/Init",
   "https://us.etrade.com/etx/pxy/login",
-  "https://secure.ally.com",
   "https://authn.edx.org/login",
   "https://www.khanacademy.org/login",
   "https://www.skillshare.com/en/login",
@@ -280,7 +278,6 @@
   "https://teamtreehouse.com/signin",
   "https://my.babbel.com/en/authentication/login/email",
   "https://app.memrise.com/signin",
-  "https://www1.nationalgridus.com/SignIn",
   "https://www.coned.com/en/login",
   "https://www.statefarm.com/login",
   "https://ecams.geico.com/login",
@@ -405,7 +402,6 @@
   "https://www.upwork.com/ab/account-security/login",
   "https://dribbble.com/signup/new",
   "https://www.pexels.com/login/",
-  "https://www.gettyimages.com/sign-in",
   "https://id.trimble.com/ui/sign_in.html",
   "https://www.vrbo.com/login?enable_login=true",
   "https://www.python.org/accounts/login/",
@@ -436,7 +432,6 @@
   "https://www.sammobile.com/login/",
   "https://accounts.adafruit.com/users/sign_in",
   "https://swappa.com/login",
-  "https://account.tidal.com/",
   "https://substack.com/sign-in",
   "https://login.techcrunch.com/",
   "https://www.wired.com/auth/initiate",
@@ -475,7 +470,6 @@
   "https://www.guru.com/login.aspx",
   "https://www.freelancer.com/login",
   "https://brilliant.org/account/login/",
-  "https://auth.meethue.com/u/login?ui_locales=en",
   "https://auth.wyze.com/login",
   "https://www.coinbase.com/signin",
   "https://accounts.binance.com/en/login",
@@ -504,5 +498,8 @@
   "https://login.alibaba.com/",
   "https://www.pornhub.com/login",
   "https://accounts.logme.in/login.aspx",
-  "https://account.corel.com/accounts/user/"
+  "https://account.corel.com/accounts/user/",
+  "https://account.pbs.org/",
+  ""
+
 ]

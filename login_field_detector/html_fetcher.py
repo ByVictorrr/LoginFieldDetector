@@ -1,12 +1,39 @@
+import time
 import logging
+from datetime import datetime
 from os import path, makedirs, cpu_count
+
+import bs4
 from diskcache import Cache
 import asyncio
 from fake_useragent import UserAgent
-from playwright.async_api import async_playwright
+from playwright.async_api import async_playwright, Page
 from playwright_stealth import stealth_async
 
 log = logging.getLogger(__name__)
+
+
+def is_cloud_flare_checkbox(html_content: str, iframes: list):
+    """Is the page blocking you from actually getting to the request url, held up by cloudflare checkbox?"""
+    return "Please verify you are human" in html_content and any("/cdn-cgi/challenge-platform/" in
+                                                                 iframe.get_attribute('src') for iframe in iframes)
+
+
+async def wait_for_page_stabilization(page: Page) -> None:
+    """Waits for the page layout to stabilize by monitoring scroll height."""
+    try:
+        last_height = await page.evaluate("document.body.scrollHeight")
+        for _ in range(10):
+            await asyncio.sleep(1)
+            new_height = await page.evaluate("document.body.scrollHeight")
+            if new_height == last_height:
+                log.debug("Page stabilized.")
+                break
+            last_height = new_height
+        else:
+            log.warning("Page layout did not stabilize. Proceeding...")
+    except Exception as e:
+        log.warning(f"Error during dynamic content handling: {e}")
 
 
 class HTMLFetcher:
@@ -27,18 +54,57 @@ class HTMLFetcher:
         self.ttl = ttl
         self.max_concurrency = max_concurrency
 
-    async def _save_screenshot(self, page, url, prefix="debug"):
+    async def _save_screenshot(self, page, url):
         """Save a screenshot of the page with a timeout."""
         try:
             filename = path.join(
                 self.screenshot_dir,
-                f"{prefix}_{url.replace('/', '_').replace(':', '_')}.png"
+                f"{url.replace('/', '_').replace(':', '_')}_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.png"
             )
             log.debug(f"Starting screenshot for {url}")
             await page.screenshot(path=filename, timeout=10000)  # 10 seconds
             log.debug(f"Completed screenshot for {url}")
         except Exception as e:
             log.warning(f"Failed to take screenshot for {url}: {e}")
+
+    async def handle_cloudflare_captcha(self, page: Page, url: str, ttl: int):
+        """Attempts to handle Cloudflare CAPTCHA if detected."""
+        try:
+            # Detect CAPTCHA iframe
+            captcha_frame = await page.query_selector("iframe[src*='captcha']")
+            if captcha_frame:
+                log.warning(f"CAPTCHA detected for {url}. Attempting to handle...")
+                frame = await captcha_frame.content_frame()
+
+                # Find and click the checkbox
+                checkbox = await frame.query_selector("input[type='checkbox']")
+                if checkbox:
+                    await checkbox.click()
+                    log.debug(f"Cloudflare CAPTCHA checkbox clicked for {url}")
+                    await asyncio.sleep(3)  # Allow Cloudflare to process the click
+                    return True
+                else:
+                    log.warning(f"No checkbox found in CAPTCHA for {url}. Skipping...")
+                    self.failed_url_cache.set(url, "captcha_detected", expire=ttl)
+        except Exception as e:
+            log.warning(f"Error detecting CAPTCHA for {url}: {e}")
+            self.failed_url_cache.set(url, "captcha_error", expire=ttl)
+        return False
+
+    async def navigate_with_retries(self, page: Page, url: str, retries: int = 3) -> bool:
+        """
+        Navigates to the URL with retries.
+        """
+        for attempt in range(retries):
+            try:
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                log.debug(f"Navigation successful for {url}")
+                return True
+            except Exception as e:
+                log.warning(f"Retry {attempt + 1} for {url}: {e}")
+        log.error(f"Navigation failed after {retries} retries for {url}")
+        self.failed_url_cache.set(url, "navigation_error", expire=self.ttl)
+        return False
 
     async def _async_fetch_url(self, url, semaphore, proxy=None, screenshot=False):
         """Comprehensive URL fetching with stealth, CAPTCHA handling, dynamic content support, and security
@@ -81,71 +147,28 @@ class HTMLFetcher:
                     log.info(f"Fetching: {url}")
 
                     # Navigate to the URL with retries
-                    for attempt in range(3):
-                        try:
-                            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-                            log.debug(f"Navigation successful for {url}")
-                            break
-                        except Exception as e:
-                            log.warning(f"Retry {attempt + 1} for {url}: {e}")
-                            if attempt == 2:  # Final attempt failed
-                                log.error(f"Navigation failed after 3 retries for {url}: {e}")
-                                self.failed_url_cache.set(url, "navigation_error", expire=self.ttl)
-                                return url, None
+                    if not await self.navigate_with_retries(page, url):
+                        return url, None
 
                     # Wait for network stability
-                    try:
-                        await page.wait_for_load_state("networkidle", timeout=15000)
-                        log.debug(f"Network idle state achieved for {url}")
-                    except Exception as e:
-                        log.warning(f"Network idle state not achieved for {url}: {e}")
+                    await wait_for_page_stabilization(page)
 
                     # Optional screenshot
                     if screenshot:
-                        try:
-                            await self._save_screenshot(page, url, prefix="success")
-                        except Exception as e:
-                            log.error(f"Failed to take screenshot for {url}: {e}")
+                        await self._save_screenshot(page, url)
 
                     # Detect and handle CAPTCHA (including Cloudflare checkbox CAPTCHA)
-                    try:
-                        captcha_frame = await page.query_selector("iframe[src*='captcha']")
-                        if captcha_frame:
-                            log.warning(f"CAPTCHA detected for {url}. Attempting to handle...")
-                            frame = await captcha_frame.content_frame()
-                            checkbox = await frame.query_selector("input[type='checkbox']")
-                            if checkbox:
-                                await checkbox.click()
-                                log.debug(f"Cloudflare CAPTCHA checkbox clicked for {url}")
-                                await asyncio.sleep(3)  # Allow Cloudflare to process the click
-                            else:
-                                log.warning(f"No checkbox found in CAPTCHA for {url}. Skipping...")
-                                self.failed_url_cache.set(url, "captcha_detected", expire=self.ttl)
-                                return url, None
-                    except Exception as e:
-                        log.warning(f"Error detecting CAPTCHA for {url}: {e}")
+                    await asyncio.sleep(5)
+                    soup = bs4.BeautifulSoup(await page.content(), "html.parser")
+                    if is_cloud_flare_checkbox(soup.text, soup.find_all("iframes")):
+                        log.debug(f"Found a cloudflare checkbox for {url}")
+                        if not self.handle_cloudflare_captcha(page, url, self.ttl):
+                            log.error(f"Failed to handle CAPTCHA for {url}")
+                            return url, None
+                    await wait_for_page_stabilization(page)
 
-                    # Handle dynamic content stabilization
-                    try:
-                        last_height = await page.evaluate("document.body.scrollHeight")
-                        for _ in range(10):  # Poll for layout stabilization
-                            await asyncio.sleep(1)
-                            new_height = await page.evaluate("document.body.scrollHeight")
-                            if new_height == last_height:
-                                log.debug(f"Page stabilized for {url}")
-                                break
-                            last_height = new_height
-                        else:
-                            log.warning(f"Page layout did not stabilize for {url}. Proceeding...")
-                    except Exception as e:
-                        log.warning(f"Error during dynamic content handling for {url}: {e}")
-
-                    # Ensure the body element is visible
-                    try:
-                        await page.wait_for_selector("body", state="visible", timeout=5000)
-                        log.debug(f"Body element visible for {url}")
-                    except Exception as e:
-                        log.warning(f"Body element not visible for {url}: {e}. Proceeding...")
+                    if screenshot:
+                        await self._save_screenshot(page, url)
 
                     # Fetch HTML content
                     try:
@@ -156,6 +179,8 @@ class HTMLFetcher:
                         log.error(f"Error fetching content for {url}: {e}")
                         return url, None
 
+                    if screenshot:
+                        await self._save_screenshot(page, url)
                     return url, html_content
 
             except Exception as e:
