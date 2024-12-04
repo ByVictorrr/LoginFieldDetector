@@ -1,19 +1,15 @@
 {
 
 
- "https://personal.vanguard.com/us/Login": "blank screen",
 
+ "https://personal.vanguard.com/us/Login": "blank screen",
   "https://www.crunchyroll.com/login": "verify you are human. This may take a few seconds (cloudflare)",
   "https://www.meetup.com/login": "502 Bad Gateway, but it works when i type it in",
-  "https://www.skype.com/en/login": "The request is blocked (microsoft login - delete)",
   "https://www.stackoverflow.com/account/login": "Verify you are human by completing the action below (cloudflare button)",
   "https://accounts-tax.intuit.com/app/turbotaxonline": "spinner still spinning",
   "https://accounts.shopify.com/lookup": "Your connected needs to be verified before you can proceed",
   "https://identity.metlife.com/public/login": "login page not loaded - main page to select which login type is loaded",
   "https://login.fidelity.com/ftgw/Fas/Fidelity/RtlCust/Login/Init": "not fully loaded",
-  "https://secure.ally.com": "not fully loaded",
-  "https://secure.newegg.com/login/signin": "not redirecting to signin",
-  "https://shop.lululemon.com/account/login": "not loaded fully",
    "https://www.slack.com/signin": "this browser wont be supported starting March 15th, 2025 & not fully loaded",
   "https://slate.com/sign-in": "spinner still spinning",
   "https://smarttherapytools.com/account/login": "spinner still spinning",

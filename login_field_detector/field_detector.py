@@ -1,3 +1,4 @@
+import asyncio
 import json
 import logging
 import os.path
@@ -148,7 +149,7 @@ class LoginFieldDetector:
         :return: Filtered inputs and labels.
         """
         inputs, labels = [], []
-        for url, text in self.url_loader.fetch_all(urls, force=force, screenshot=screenshots).items():
+        for url, text in asyncio.run(self.url_loader.fetch_all(urls, force=force, screenshot=screenshots)).items():
             try:
                 tokens, token_labels, _ = self.feature_extractor.get_features(text)
                 assert len(tokens) == len(token_labels)
