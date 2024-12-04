@@ -48,6 +48,8 @@ async def _wait_for_dynamic_content(page, max_retries=10, interval=1000):
     return False
 
 
+import re
+
 async def _wait_for_spinners(page, regex_patterns, timeout):
     """Wait for spinners or loading indicators matching regex patterns to disappear.
 
@@ -56,30 +58,33 @@ async def _wait_for_spinners(page, regex_patterns, timeout):
     :param timeout: Timeout in seconds.
     """
     try:
-        # JavaScript code to check spinner presence
+        # Combine regex patterns into one, with case insensitivity
+        combined_pattern = re.compile('|'.join(regex_patterns), re.IGNORECASE)
+
+        # JavaScript code to check spinner visibility
         js_code = """
-        (patterns) => {
-            const regexes = patterns.map(pattern => new RegExp(pattern));
+        (pattern) => {
+            const regex = new RegExp(pattern, 'i');
             const elements = Array.from(document.querySelectorAll('*'));
-            // Check if any element matches any regex pattern
+            // Check if any element is visible and matches the regex
             return elements.some(element =>
-                regexes.some(regex =>
-                    regex.test(element.className || '') || regex.test(element.id || '') ||
-                    Array.from(element.attributes).some(attr => regex.test(attr.value || ''))
-                )
+                (regex.test(element.className || '') || regex.test(element.id || '') ||
+                Array.from(element.attributes).some(attr => regex.test(attr.value || ''))) &&
+                window.getComputedStyle(element).visibility !== 'hidden' &&
+                window.getComputedStyle(element).display !== 'none'
             );
         }
         """
 
-        # Pass patterns to the JavaScript function via 'arg'
+        # Pass the combined regex pattern as a string to the JavaScript function
         await page.wait_for_function(
             js_code,
-            arg=regex_patterns,  # Correctly pass regex_patterns to JS
-            timeout=playwright_timeout(timeout),  # Timeout in milliseconds
+            arg=combined_pattern.pattern,
+            timeout=playwright_timeout(timeout),
         )
-        log.info(f"All spinners matching {regex_patterns} have disappeared.")
+        log.info(f"All spinners matching the expanded regex have disappeared.")
     except asyncio.TimeoutError:
-        log.warning(f"Spinners matching {regex_patterns} did not disappear within the timeout.")
+        log.warning("Spinners did not disappear within the timeout.")
     except Exception as e:
         log.error(f"Error waiting for spinners: {e}")
 
