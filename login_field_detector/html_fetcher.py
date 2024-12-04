@@ -11,35 +11,6 @@ from playwright_stealth import stealth_async
 log = logging.getLogger(__name__)
 
 
-async def wait_for_page_stabilization(page: Page, timeout=10):
-    """Wait for the page layout to stabilize."""
-    try:
-        last_height = await page.evaluate("document.body.scrollHeight")
-        for _ in range(timeout):
-            await asyncio.sleep(1)
-            new_height = await page.evaluate("document.body.scrollHeight")
-            if new_height == last_height:
-                log.debug("Page stabilized.")
-                return
-            last_height = new_height
-        log.warning("Page layout did not stabilize.")
-    except Exception as e:
-        log.warning(f"Error during page stabilization: {e}")
-
-
-async def navigate_with_retries(page: Page, url: str, retries: int = 3) -> bool:
-    """Navigate to a URL with retries."""
-    for attempt in range(retries):
-        try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=30000)
-            log.debug(f"Navigation successful for {url}")
-            return True
-        except Exception as e:
-            log.warning(f"Retry {attempt + 1} for {url}: {e}")
-    log.error(f"Failed to navigate to {url} after {retries} retries.")
-    return False
-
-
 class HTMLFetcher:
     def __init__(self, cache_dir=None, ttl=7 * 24 * 3600, max_concurrency=cpu_count()):
         """
@@ -59,24 +30,12 @@ class HTMLFetcher:
         self.max_concurrency = max_concurrency
 
     def fetch_html(self, url, force=False, screenshot=False):
-        """Synchronously fetch a single URL.
-
-        :param url: URL to fetch.
-        :param force: Force fetching even if URLs are cached or marked as failed.
-        :param screenshot: Whether to take a screenshot of the page.
-        :return: HTML content as a string or None if failed.
-        """
+        """Synchronously fetch a single URL."""
         result = self.fetch_all([url], force=force, screenshot=screenshot)
         return result.get(url, None)
 
     def fetch_all(self, urls: list, force: bool = False, screenshot: bool = False):
-        """Fetch multiple URLs concurrently.
-
-        :param urls: List of URLs to fetch.
-        :param force: Force fetching even if URLs are cached or marked as failed.
-        :param screenshot: Whether to take screenshots at key points.
-        :return: A dictionary of URLs mapped to their HTML content or None if failed.
-        """
+        """Fetch multiple URLs concurrently."""
         if force:
             for url in urls:
                 if url in self.failed_url_cache:
@@ -90,14 +49,7 @@ class HTMLFetcher:
         return {url: html for url, html in results if html}
 
     async def _fetch_all_async(self, urls: list, semaphore: asyncio.Semaphore, force: bool, screenshot: bool):
-        """Asynchronous batch fetcher.
-
-        :param urls: List of URLs to fetch.
-        :param semaphore: Semaphore to control concurrency.
-        :param force: Force fetching even if URLs are cached or marked as failed.
-        :param screenshot: Whether to take screenshots at key points.
-        :return: A dictionary of URLs mapped to their HTML content or None if failed.
-        """
+        """Asynchronous batch fetcher."""
         tasks = [
             self._async_fetch_url(url, semaphore, screenshot)
             for url in urls if force or url not in self.cache
@@ -105,17 +57,10 @@ class HTMLFetcher:
         return await asyncio.gather(*tasks)
 
     async def _async_fetch_url(self, url: str, semaphore: asyncio.Semaphore, screenshot: bool = False) -> tuple:
-        """Fetch a single URL asynchronously with stealth, CAPTCHA handling, and dynamic content support.
-
-        :param url: The URL to fetch.
-        :param semaphore: Semaphore to control concurrency.
-        :param screenshot: Whether to take screenshots at key points.
-        :return: A tuple of (URL, HTML content or None if failed).
-        """
+        """Fetch a single URL asynchronously."""
         async with semaphore:
             try:
                 async with async_playwright() as p:
-                    # Launch browser with arguments optimized for stealth
                     browser = await p.chromium.launch(
                         headless=True,
                         args=[
@@ -129,6 +74,7 @@ class HTMLFetcher:
                             "--disable-component-extensions-with-background-pages",
                             "--hide-scrollbars",
                             "--mute-audio",
+                            "--disable-http2",  # Add this flag
                         ],
                     )
                     context = await browser.new_context(
@@ -142,35 +88,20 @@ class HTMLFetcher:
 
                     log.info(f"Fetching: {url}")
 
-                    # Navigate to the URL with retries
-                    if not await navigate_with_retries(page, url):
+                    if not await self.navigate_with_retries(page, url):
                         return url, None
 
-                    # Handle Cloudflare checkbox CAPTCHA
-                    await asyncio.sleep(3)
                     if not await self.handle_cloudflare_captcha(page, url, screenshot):
                         log.warning(f"Cloudflare CAPTCHA handling failed for {url}. Skipping...")
                         self.failed_url_cache.set(url, "captcha_failed", expire=self.ttl)
                         return url, None
 
-                    # Wait for page stabilization
-                    await wait_for_page_stabilization(page)
-                    await asyncio.sleep(3)
+                    await self.wait_for_page_ready(page)
 
-                    # Ensure the body is visible
-                    try:
-                        await page.wait_for_selector("body", state="visible", timeout=5000)
-                        log.debug(f"Body element visible for {url}")
-                    except Exception as e:
-                        log.warning(f"Body not visible for {url}: {e}. Proceeding...")
-
-                    # Fetch the page content
-                    await asyncio.sleep(3)
                     html_content = await page.content()
                     log.debug(f"Successfully fetched content for {url}")
                     self.cache.set(url, html_content, expire=self.ttl)
 
-                    # Take a screenshot if required
                     if screenshot:
                         await self._save_screenshot(page, url, postfix="success")
 
@@ -178,35 +109,62 @@ class HTMLFetcher:
 
             except Exception as e:
                 log.error(f"Error fetching {url}: {e}")
+                await self.log_html_content(page, url, postfix="error")
                 self.failed_url_cache.set(url, "unexpected_error", expire=self.ttl)
                 return url, None
 
-    async def handle_cloudflare_captcha(self, page: Page, url: str, screenshot: bool) -> bool:
-        """Handle simple Cloudflare CAPTCHA challenges (e.g., checkbox).
+    async def navigate_with_retries(self, page: Page, url: str, retries: int = 3, backoff: int = 2) -> bool:
+        """Navigate to a URL with retries and backoff."""
+        for attempt in range(retries):
+            try:
+                await page.goto(url, wait_until="domcontentloaded", timeout=30000)
+                log.debug(f"Navigation successful for {url}")
+                return True
+            except Exception as e:
+                log.warning(f"Retry {attempt + 1} for {url}: {e}")
+                await asyncio.sleep(backoff ** attempt)  # Exponential backoff
+        log.error(f"Failed to navigate to {url} after {retries} retries.")
+        return False
 
-        :param page: The Playwright Page instance.
-        :param url: The URL being processed.
-        :param screenshot: Whether to take screenshots at key points.
-        :return: True if the CAPTCHA was successfully handled, False otherwise.
-        """
+    async def wait_for_page_ready(self, page: Page, timeout: int = 30000):
+        """Generalized wait for page readiness."""
+        try:
+            await page.wait_for_load_state("networkidle", timeout=timeout)
+            log.info("Network is idle.")
+
+            await page.wait_for_function("document.readyState === 'complete'", timeout=timeout)
+            log.info("Document is ready.")
+
+            spinner_selectors = [".spinner", ".loading", ".progress", "[data-loading]", "[aria-busy='true']"]
+            for selector in spinner_selectors:
+                try:
+                    await page.wait_for_selector(selector, state="detached", timeout=5000)
+                    log.info(f"Spinner {selector} disappeared.")
+                except Exception:
+                    log.debug(f"No spinner or timeout waiting for {selector}.")
+        except Exception as e:
+            log.warning(f"Page readiness check failed: {e}")
+
+    async def handle_cloudflare_captcha(self, page: Page, url: str, screenshot: bool) -> bool:
+        """Enhanced Cloudflare CAPTCHA handling."""
         try:
             if screenshot:
                 await self._save_screenshot(page, url, postfix="pre_cloudflare")
             await asyncio.sleep(3)
-            captcha_frame = await page.query_selector("iframe[src*='/cdn-cgi/challenge-platform/']")
             content = await page.content()
-            if "verify you are human by completing the action below" in content.lower():
+            if "verify you are human" in content.lower():
                 log.info(f"Cloudflare CAPTCHA detected for {url}. Attempting to handle...")
-                frame = await captcha_frame.content_frame()
-                checkbox = await frame.query_selector("input[type='checkbox']")
-                if checkbox:
-                    await checkbox.click()
-                    await asyncio.sleep(3)  # Allow CAPTCHA to process
-                    if screenshot:
-                        await self._save_screenshot(page, url, postfix="post_cloudflare")
+                captcha_frame = await page.query_selector("iframe[src*='/cdn-cgi/challenge-platform/']")
+                if captcha_frame:
+                    frame = await captcha_frame.content_frame()
+                    checkbox = await frame.query_selector("input[type='checkbox']")
+                    if checkbox:
+                        await checkbox.click()
+                        await asyncio.sleep(5)  # Allow processing
+                        if screenshot:
+                            await self._save_screenshot(page, url, postfix="post_cloudflare")
                         return True
-            else:
-                return True
+            return True
         except Exception as e:
             log.error(f"Error handling Cloudflare CAPTCHA for {url}: {e}")
             return False
@@ -214,34 +172,35 @@ class HTMLFetcher:
     async def _save_screenshot(self, page: Page, url: str, postfix=None):
         """Save a screenshot of the page."""
         try:
-            log_timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
+            timestamp = datetime.now().strftime('%Y-%m-%d_%H-%M-%S')
             filename = path.join(
                 self.screenshot_dir,
-                f"{url.replace('/', '_').replace(':', '_')}_{log_timestamp}{f'_{postfix}' if postfix else ''}.png"
+                f"{url.replace('/', '_').replace(':', '_')}_{timestamp}{f'_{postfix}' if postfix else ''}.png"
             )
             await page.screenshot(path=filename)
             log.debug(f"Screenshot saved: {filename}")
         except Exception as e:
             log.warning(f"Failed to take screenshot for {url}: {e}")
 
+    async def log_html_content(self, page: Page, url: str, postfix=None):
+        """Log and save HTML content for debugging."""
+        try:
+            content = await page.content()
+            filename = path.join(
+                self.screenshot_dir,
+                f"{url.replace('/', '_').replace(':', '_')}_{postfix or 'content'}.html"
+            )
+            with open(filename, "w", encoding="utf-8") as f:
+                f.write(content)
+            log.debug(f"HTML content saved: {filename}")
+        except Exception as e:
+            log.warning(f"Failed to save HTML content for {url}: {e}")
+
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO)
-
     fetcher = HTMLFetcher(max_concurrency=3)
-
-    # Example URLs
-    _urls = [
-        "https://example.com",
-        "https://x.com/i/flow/login",
-    ]
-
-    # Fetch all URLs with screenshots
-    _results = fetcher.fetch_all(_urls, force=True, screenshot=True)
-
-    # Print results
-    for _url, html_text in _results.items():
-        if html_text:
-            print(f"Fetched {len(html_text)} characters from {_url}")
-        else:
-            print(f"Failed to fetch {_url}")
+    _urls = ["https://example.com", "https://x.com/i/flow/login"]
+    res = fetcher.fetch_all(_urls, force=True, screenshot=True)
+    for _url, html_text in res.items():
+        print(f"Fetched {len(html_text)} characters from {_url}" if html_text else f"Failed to fetch {_url}")
