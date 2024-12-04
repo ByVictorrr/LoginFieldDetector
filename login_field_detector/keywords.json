@@ -67,7 +67,15 @@
     "PASSWORD": "(pass|password|pwd|secret|key|pin|phrase|access code|security word)",
     "PHONE_NUMBER": "(phone|mobile|contact number|cell|telephone|call us)",
     "TWO_FACTOR_AUTH": "(2fa|authenticator|verification code|token|one-time code|security key|two-step verification|otp)"
-  }
+  },
+  "spinner_patterns": [
+    "spinner",
+    "loading",
+    "progress-bar",
+    "ant-spin",
+    "mat-spinner",
+    "busy"
+]
 
 }
 
