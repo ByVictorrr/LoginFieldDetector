@@ -23,6 +23,7 @@ jobs:
     - name: Install dependencies
       run: |
         pip install .[cpu,test] coveralls
+        playwright install
 
     - name: Run tests with coverage
       run: |
