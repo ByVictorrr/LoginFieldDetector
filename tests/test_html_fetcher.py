@@ -23,7 +23,7 @@ with open(os.path.join(APP_DIR, "dataset", "failed_urls.json"), "r") as fp:
 def test_valid_urls(fetcher):
     """Test handling of redirects."""
 
-    html_content = asyncio.run(fetcher.fetch_all(TRAINING_URLS, force=True, screenshot=True))
+    html_content = fetcher.fetch_all(TRAINING_URLS, force=True, screenshot=True)
     print("hi")
     # html_content_list = fetcher.fetch_all(training_urls, force=True, screenshot=True).values()
     # assert len(html_content_list) >= .8 * len(training_urls), \
