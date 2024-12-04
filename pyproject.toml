@@ -30,7 +30,6 @@ dependencies = [
     "babel>=2.8.0",
     "fake-useragent>=1.5.1",
     "playwright==1.39.0",
-    "greenlet==3.0.1",
     "playwright-stealth>=1.0.4",
 ]
 
