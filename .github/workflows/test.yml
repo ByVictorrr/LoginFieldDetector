@@ -1,0 +1,47 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v3
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: 3.10.12
+        check-latest: true
+
+    - name: Install dependencies
+      run: |
+        pip install .[test] coveralls
+
+    - name: Run tests with coverage
+      run: |
+        pytest --cov=login_field_detector --cov-report=xml --junitxml=results.xml
+
+    - name: Upload to Coveralls
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_REPO_TOKEN }}
+      run: |
+        coveralls --verbose --service=github
+
+    - name: Upload coverage report (HTML for reference)
+      uses: actions/upload-artifact@v3
+      with:
+        name: coverage-report
+        path: htmlcov/
+
+    - name: Upload test results
+      uses: actions/upload-artifact@v3
+      with:
+        name: test-results
+        path: results.xml

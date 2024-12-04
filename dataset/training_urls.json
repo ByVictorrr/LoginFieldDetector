@@ -134,6 +134,7 @@
   "https://www.shopify.com/login",
   "https://accounts.intuit.com/app/sign-in",
   "https://accounts-tax.intuit.com/app/turbotaxonline",
+
   "https://www.mailchimp.com/login",
   "https://www.ynab.com/login",
   "https://connect.secure.wellsfargo.com/auth/login/present",
@@ -171,7 +172,7 @@
   "https://www.nike.com/login",
   "https://www.yelp.com/login",
   "https://www.prezi.com/login",
-  "https://www.citi.com/login",
+  "https://online.citi.com/US/login.do",
   "https://www.gitlab.com/users/sign_in",
   "https://auth.services.adobe.com/en_US/index.html#/",
   "https://www.pinterest.com/login",

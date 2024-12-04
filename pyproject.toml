@@ -50,11 +50,17 @@ docs = [
     "sphinxcontrib-napoleon",  # For Google/NumPy docstring styles
     "sphinx-rtd-theme",        # Optional theme
 ]
-test = ["pytest"]
+test = ["pytest", "pytest-cov"]
+
 [project.urls]
 homepage = "https://github.com/ByVictorrr"
 repository = "https://github.com/ByVictorrr/LoginFieldDetector"
 documentation = "https://byvictorrr.github.io/LoginFieldDetector/"
+
+[tool.pytest.ini_options]
+addopts="-v --cov"
+markers = []
+testpaths = ["tests/"]
 
 [tool.setuptools]
 packages = ["login_field_detector"]

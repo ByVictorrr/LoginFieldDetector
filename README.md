@@ -1,4 +1,5 @@
 # HTML Login Field Detector
+[![Coverage Status](https://coveralls.io/repos/github/ByVictorrr/LoginFieldDetector/badge.svg?branch=main)](https://coveralls.io/github/ByVictorrr/LoginFieldDetector?branch=main)
 
 `html-login-field-detector` is a Python library designed to identify and process login fields in HTML documents. Powered by machine learning (DistilBERT) and modern web scraping tools, this library provides a robust solution for automating form detection in web applications.
 

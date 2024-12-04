@@ -1,6 +1,8 @@
 {
 
 
+ "https://personal.vanguard.com/us/Login": "blank screen",
+
   "https://www.crunchyroll.com/login": "verify you are human. This may take a few seconds (cloudflare)",
   "https://www.meetup.com/login": "502 Bad Gateway, but it works when i type it in",
   "https://www.skype.com/en/login": "The request is blocked (microsoft login - delete)",
@@ -9,11 +11,6 @@
   "https://accounts.shopify.com/lookup": "Your connected needs to be verified before you can proceed",
   "https://identity.metlife.com/public/login": "login page not loaded - main page to select which login type is loaded",
   "https://login.fidelity.com/ftgw/Fas/Fidelity/RtlCust/Login/Init": "not fully loaded",
- "https://my.surfshark.com/login": "Verifying you are human. This may take a few seconds. (cloudflare)",
- "https://na.chargepoint.com/login": "spinner still spinning",
-  "https://online.citi.com/US/login.do": "Invalid URL. The requested URL '[no URL]', is valid. https://errors.edgesuite.net/9.5d5ed617.1732958403.831857a2",
-  "https://personal.vanguard.com/us/Login": "blank screen",
-  "https://qdirectaccess.ps.honeywell.com/ps/signon.html": "blank screen",
   "https://secure.ally.com": "not fully loaded",
   "https://secure.newegg.com/login/signin": "not redirecting to signin",
   "https://shop.lululemon.com/account/login": "not loaded fully",
