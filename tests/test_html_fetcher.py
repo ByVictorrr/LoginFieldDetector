@@ -22,6 +22,7 @@ with open(os.path.join(APP_DIR, "dataset", "failed_urls.json"), "r") as fp:
 # @pytest.mark.parametrize("url", TRAINING_URLS)
 def test_valid_urls(fetcher):
     """Test handling of redirects."""
+
     html_content = asyncio.run(fetcher.fetch_all(TRAINING_URLS, force=True, screenshot=True))
     print("hi")
     # html_content_list = fetcher.fetch_all(training_urls, force=True, screenshot=True).values()
