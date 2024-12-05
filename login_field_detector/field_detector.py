@@ -70,7 +70,7 @@ def download_model_files(root_dir):
                 force_filename=filename
             )
             # Move file to the root of model_dir if necessary
-            if not file_path.startswith(model_dir):
+            if os.path.basename(file_path) not in os.listdir(model_dir):
                 destination_path = os.path.join(model_dir, filename)
                 shutil.copy(file_path, destination_path)
                 log.info(f"Copied {filename} to {destination_path}")
