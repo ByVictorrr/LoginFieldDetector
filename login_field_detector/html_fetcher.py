@@ -287,9 +287,10 @@ class HTMLFetcher:
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json"), "r") as ufp:
+    top_dir = os.path.dirname(os.path.dirname(__file__))
+    with open(os.path.join(top_dir, "dataset", "training_urls.json"), "r") as ufp:
         _urls = json.load(ufp)
-    fetcher = HTMLFetcher(max_concurrency=os.cpu_count()//2)
+    fetcher = HTMLFetcher(cache_dir=os.path.join(top_dir, "test_cache"), max_concurrency=os.cpu_count()//2)
     _results = fetcher.fetch_all(_urls, screenshot=True, force=True)
     for _url, _html in _results.items():
         if _html:
