@@ -2,6 +2,7 @@ import asyncio
 import json
 import logging
 import os.path
+import shutil
 import time
 from collections import Counter, defaultdict
 import torch
@@ -54,21 +55,38 @@ class WeightedTrainer(Trainer):
 
 
 def download_model_files(root_dir):
-    """Downloads the necessary model files from Hugging Face Hub.
-
-    Returns paths to the downloaded model and tokenizer files.
-    """
+    """Downloads the necessary model files from Hugging Face Hub and ensures they are in the model directory root."""
     model_dir = os.path.join(root_dir, "download_model")
     repo_id = "byvictorrr/html-login-field-detector"
-    # Ensure the directory exists
     os.makedirs(model_dir, exist_ok=True)
+
     for filename in ["model.safetensors", "config.json", "tokenizer.json"]:
-        hf_hub_download(repo_id=repo_id, filename=filename, cache_dir=model_dir, force_filename=filename)
+        try:
+            # Download the file
+            file_path = hf_hub_download(
+                repo_id=repo_id,
+                filename=filename,
+                cache_dir=model_dir,
+                force_filename=filename
+            )
+            # Move file to the root of model_dir if necessary
+            if not file_path.startswith(model_dir):
+                destination_path = os.path.join(model_dir, filename)
+                shutil.copy(file_path, destination_path)
+                log.info(f"Copied {filename} to {destination_path}")
+            else:
+                log.info(f"{filename} is already in the correct location: {file_path}")
+        except Exception as e:
+            log.error(f"Error downloading {filename}: {e}")
+
+    # Verify all files exist
+    for filename in ["model.safetensors", "config.json", "tokenizer.json"]:
         file_path = os.path.join(model_dir, filename)
         if not os.path.exists(file_path):
-            log.error(f"{filename} is missing!")
+            log.error(f"{filename} is missing from {model_dir}!")
         else:
-            log.info(f"{filename} exists at {file_path}.")
+            log.info(f"{filename} exists at {file_path}")
+
     return model_dir
 
 

@@ -88,5 +88,5 @@ class TestDetectorInternal:
 
         values = detector.predict(html_content=html_content)
         assert not any(
-            len(v) > 0 for k, v in values.items() if k in LOGIN_PAGE_ELEMENTS
+            len(v) > 0 for result in values.items() for k, v in result.items() if k in LOGIN_PAGE_ELEMENTS
         ), f"Incorrectly detected login fields in {html_file}"

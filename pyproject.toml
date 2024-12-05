@@ -77,3 +77,30 @@ packages = ["login_field_detector"]
 "dataset" = ["dataset/training_urls.json"]
 "docs" = ["README.md"]
 
+[tool.coverage.run]
+# The source directories to include in the coverage
+source = ["login_field_detector"]
+
+# Patterns to omit from coverage
+omit = [
+    "/tmp/*",
+    "*/_remote_module_non_scriptable.py",
+    "tests/*"  # Example: Exclude tests
+]
+
+[tool.coverage.report]
+# Patterns for lines to exclude from coverage
+exclude_lines = [
+    "pragma: no cover",
+    "if __name__ == .__main__.:"
+]
+
+# Show missed lines in the terminal report
+show_missing = true
+
+# Fail if the total coverage falls below this percentage
+fail_under = 80
+
+[tool.coverage.html]
+# Directory to save the HTML coverage report
+directory = "htmlcov"
