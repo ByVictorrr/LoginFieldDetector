@@ -1,4 +1,3 @@
-import asyncio
 import json
 import logging
 import os.path
@@ -118,7 +117,6 @@ class LoginFieldDetector:
             )
             log.info("Not need to train this model because it has been fetched.")
         except Exception as e:
-            log.warning(f"{model_dir} includes: {os.listdir(model_dir)}")
             log.warning(f"Failed to load model from {model_dir}: {e}. Falling back to 'distilbert-base-uncased'.")
             self.tokenizer = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
             # Create a config with model_type
@@ -163,7 +161,7 @@ class LoginFieldDetector:
         :return: Filtered inputs and labels.
         """
         inputs, labels = [], []
-        for url, text in asyncio.run(self.url_loader.fetch_all(urls, force=force, screenshot=screenshots)).items():
+        for url, text in self.url_loader.fetch_all(urls, force=force, screenshot=screenshots).items():
             try:
                 tokens, token_labels, _ = self.feature_extractor.get_features(text)
                 assert len(tokens) == len(token_labels)
