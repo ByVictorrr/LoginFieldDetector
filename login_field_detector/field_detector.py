@@ -398,5 +398,7 @@ if __name__ == "__main__":
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
     output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model")
+    if not os.path.exists(output_dir):
+        os.makedirs(output_dir)
     detector = LoginFieldDetector(model_dir=output_dir)
     detector.train(force=True, epochs=50)
