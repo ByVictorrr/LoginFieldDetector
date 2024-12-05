@@ -1,10 +1,10 @@
 import json
+import re
 import logging
 import asyncio
 import os
 import random
 from datetime import datetime
-from os import path, makedirs
 
 from diskcache import Cache
 from fake_useragent import UserAgent
@@ -16,7 +16,7 @@ log = logging.getLogger(__name__)
 with open(os.path.join(os.path.dirname(__file__), "keywords.json"), "r") as key_fp:
     SPINNER_PATTERNS = json.load(key_fp)["spinner_patterns"]
 
-DEFAULT_TIMEOUT = 30  # seconds
+DEFAULT_TIMEOUT = 60  # seconds
 
 
 def playwright_timeout(seconds):
@@ -48,9 +48,6 @@ async def _wait_for_dynamic_content(page, max_retries=10, interval=1000):
     return False
 
 
-import re
-
-
 async def _wait_for_spinners(page, regex_patterns, timeout):
     """Wait for spinners or loading indicators matching regex patterns to disappear.
 
@@ -59,38 +56,44 @@ async def _wait_for_spinners(page, regex_patterns, timeout):
     :param timeout: Timeout in seconds.
     """
     try:
-        # Combine regex patterns into one, with case insensitivity
-        combined_pattern = re.compile('|'.join(regex_patterns), re.IGNORECASE)
+        # Combine regex patterns into a single string
+        combined_pattern = '|'.join(regex_patterns)
 
-        # JavaScript code to check spinner visibility
+        # Precompile the regex in Python for validation
+        compiled_regex = re.compile(combined_pattern, re.IGNORECASE)
+
+        # JavaScript code to check spinner visibility without unsafe-eval
         js_code = """
         (pattern) => {
             const regex = new RegExp(pattern, 'i');
             const elements = Array.from(document.querySelectorAll('*'));
-            // Check if any element is visible and matches the regex
-            return elements.some(element =>
-                (regex.test(element.className || '') || regex.test(element.id || '') ||
-                Array.from(element.attributes).some(attr => regex.test(attr.value || ''))) &&
-                window.getComputedStyle(element).visibility !== 'hidden' &&
-                window.getComputedStyle(element).display !== 'none'
-            );
+            return elements.some(element => {
+                const attributes = Array.from(element.attributes).map(attr => attr.value || '');
+                return (
+                    regex.test(element.className || '') ||
+                    regex.test(element.id || '') ||
+                    attributes.some(attr => regex.test(attr))
+                ) &&
+                getComputedStyle(element).visibility !== 'hidden' &&
+                getComputedStyle(element).display !== 'none';
+            });
         }
         """
 
-        # Pass the combined regex pattern as a string to the JavaScript function
+        # Call JavaScript with the regex pattern passed as an argument
         await page.wait_for_function(
             js_code,
-            arg=combined_pattern.pattern,
+            arg=compiled_regex.pattern,
             timeout=playwright_timeout(timeout),
         )
-        log.info(f"All spinners matching the expanded regex have disappeared.")
+        log.info("All spinners matching the expanded regex have disappeared.")
     except asyncio.TimeoutError:
         log.warning("Spinners did not disappear within the timeout.")
     except Exception as e:
         log.error(f"Error waiting for spinners: {e}")
 
 
-async def wait_for_page_ready(page, timeout=6):
+async def wait_for_page_ready(page, timeout=15):
     """Wait for the page to be fully loaded and stable."""
     try:
         # Wait for network idle
@@ -112,10 +115,10 @@ async def wait_for_page_ready(page, timeout=6):
         raise
 
 
-async def navigate_with_retries(page, url, retries=3, backoff=2):
+async def navigate_with_retries(page, url, retries=3, backoff=2, timeout=60):
     for attempt in range(retries):
         try:
-            await page.goto(url, wait_until="domcontentloaded", timeout=playwright_timeout(30))
+            await page.goto(url, wait_until="domcontentloaded", timeout=playwright_timeout(timeout))
             return True
         except Exception as e:
             delay = backoff * (2 ** attempt) + random.uniform(0, 1)  # Add jitter
@@ -135,13 +138,13 @@ class HTMLFetcher:
             context_kwargs=None,
     ):
         # Initialization remains unchanged
-        cache_dir = cache_dir or path.join(path.dirname(__file__), "html_cache")
-        makedirs(cache_dir, exist_ok=True)
+        cache_dir = cache_dir or os.path.join(os.path.dirname(__file__), "html_cache")
+        os.makedirs(cache_dir, exist_ok=True)
 
         self.cache = Cache(cache_dir)
         self.failed_url_cache = Cache(f"{cache_dir}/failed_urls")
-        self.screenshot_dir = path.join(cache_dir, "screenshots")
-        makedirs(self.screenshot_dir, exist_ok=True)
+        self.screenshot_dir = os.path.join(cache_dir, "screenshots")
+        os.makedirs(self.screenshot_dir, exist_ok=True)
 
         self.ttl = ttl
         self.max_concurrency = max_concurrency
@@ -162,6 +165,7 @@ class HTMLFetcher:
         # Context arguments
         self.context_kwargs = context_kwargs or {
             "user_agent": UserAgent().random,
+            "bypass_csp": True,
             "viewport": {"width": 1920, "height": 1080},
             "ignore_https_errors": True,
             "extra_http_headers": {"accept-language": "en-US,en;q=0.9"},
@@ -249,7 +253,7 @@ class HTMLFetcher:
                 await stealth_async(page)
 
                 # Navigate and handle retries
-                if not await navigate_with_retries(page, url):
+                if not await navigate_with_retries(page, url, timeout=DEFAULT_TIMEOUT):
                     return url, None
 
                 # Wait for the page to be ready
@@ -274,7 +278,7 @@ class HTMLFetcher:
         try:
             filename = f"{url.replace('/', '_').replace(':', '_')}_" \
                        f"{datetime.now().strftime('%Y%m%d_%H%M%S')}{f'_{postfix}' if postfix else ''}.png"
-            filepath = path.join(self.screenshot_dir, filename)
+            filepath = os.path.join(self.screenshot_dir, filename)
             await page.screenshot(path=filepath)
             log.info(f"Screenshot saved: {filepath}")
         except Exception as e:
@@ -284,9 +288,9 @@ class HTMLFetcher:
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
     with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json"), "r") as ufp:
-        urls = json.load(ufp)
-    fetcher = HTMLFetcher()
-    _results = fetcher.fetch_all(urls, screenshot=True, force=True)
+        _urls = json.load(ufp)
+    fetcher = HTMLFetcher(max_concurrency=os.cpu_count()//2)
+    _results = fetcher.fetch_all(_urls, screenshot=True, force=True)
     for _url, _html in _results.items():
         if _html:
             print(f"Successfully fetched {len(_html)} characters from {_url}")

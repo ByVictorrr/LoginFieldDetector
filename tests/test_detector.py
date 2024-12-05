@@ -74,9 +74,9 @@ class TestDetectorInternal:
         ), f"Failed to detect login fields in {html_file}"
 
     @pytest.mark.parametrize("html_file", [
-        "invalid/malformed.html",
-        "invalid/non_login.html",
-        "invalid/uncommon_attributes.html",
+        "malformed.html",
+        "non_login.html",
+        "uncommon_attributes.html",
     ])
     def test_invalid_html_detection(self, detector, html_file):
         """Test detector with invalid cached HTML files."""
