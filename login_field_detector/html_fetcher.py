@@ -50,6 +50,7 @@ async def _wait_for_dynamic_content(page, max_retries=10, interval=1000):
 
 import re
 
+
 async def _wait_for_spinners(page, regex_patterns, timeout):
     """Wait for spinners or loading indicators matching regex patterns to disappear.
 
@@ -281,22 +282,11 @@ class HTMLFetcher:
 
 
 if __name__ == "__main__":
-    logging.basicConfig(level=logging.INFO)
-
-    fetcher = HTMLFetcher(
-        browser_launch_kwargs={
-            "headless": False,
-            "args": ["--disable-http2", "--start-maximized"],
-        },
-        context_kwargs={
-            "viewport": {"width": 1280, "height": 720},
-            "ignore_https_errors": True,
-        },
-    )
-
-    _urls = ["https://example.com"]
-    _results = asyncio.run(fetcher.fetch_all(_urls, force=True, screenshot=True))
-
+    logging.basicConfig(level=logging.DEBUG)
+    with open(os.path.join(os.path.dirname(os.path.dirname(__file__)), "dataset", "training_urls.json"), "r") as ufp:
+        urls = json.load(ufp)
+    fetcher = HTMLFetcher()
+    _results = fetcher.fetch_all(urls, screenshot=True, force=True)
     for _url, _html in _results.items():
         if _html:
             print(f"Successfully fetched {len(_html)} characters from {_url}")

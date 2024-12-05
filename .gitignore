@@ -11,6 +11,7 @@ results/
 logs/
 fine_tuned_model/
 html_cache/
+download_model/
 docs/build
 test_cache/
 # Test web server
