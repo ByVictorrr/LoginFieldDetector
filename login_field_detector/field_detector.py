@@ -106,6 +106,7 @@ class LoginFieldDetector:
             )
             log.info("Not need to train this model because it has been fetched.")
         except Exception as e:
+            log.warning(f"{model_dir} includes: {os.listdir(model_dir)}")
             log.warning(f"Failed to load model from {model_dir}: {e}. Falling back to 'distilbert-base-uncased'.")
             self.tokenizer = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
             # Create a config with model_type
