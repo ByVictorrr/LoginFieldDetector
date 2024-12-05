@@ -23,11 +23,10 @@ jobs:
     - name: Install dependencies
       run: |
         pip install .[cpu,test] coveralls
-        playwright install
 
     - name: Run tests with coverage
       run: |
-        pytest --cov=login_field_detector --cov-report=xml --junitxml=results.xml
+        pytest -m "not external" --cov=login_field_detector --cov-report=xml --junitxml=results.xml
 
     - name: Upload to Coveralls
       env:

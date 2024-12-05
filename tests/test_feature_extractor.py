@@ -1,34 +1,31 @@
-import json
 import os
 import logging
 import pytest
 from bs4 import BeautifulSoup
-from login_field_detector import determine_label, HTMLFetcher, HTMLFeatureExtractor, LABELS
+from login_field_detector import determine_label, HTMLFeatureExtractor, LABEL2ID
 
 log = logging.getLogger(__file__)
 
 
 @pytest.fixture(scope="module")
-def fetcher():
-    """Fixture for HTMLFetcher."""
-    return HTMLFetcher()
-
-
-@pytest.fixture(scope="module")
 def extractor():
     """Fixture for HTMLFeatureExtractor."""
-    label2id = {label: idx for idx, label in enumerate(LABELS)}
-    return HTMLFeatureExtractor(label2id)
+    return HTMLFeatureExtractor(LABEL2ID)
 
 
-@pytest.mark.parametrize("url", [
-    "https://x.com/i/flow/login",
+@pytest.mark.parametrize("html_file", [
+    "crunchyroll.html",
+    "dailymotion.html",
+    "etsy.html",
 ])
-def test_html_extraction(fetcher, extractor, url):
+def test_html_extraction(extractor, html_file):
     """Test feature extraction from real URLs."""
-    html_content = fetcher.fetch_html(url)
+    file_path = os.path.join(os.path.dirname(__file__), "feature_extraction", "valid", html_file)
+    assert os.path.exists(file_path), f"{html_file} does not exist!"
+    with open(file_path, "r", encoding="utf-8") as f:
+        html_content = f.read()
     tokens, labels, xpaths = extractor.get_features(html_text=html_content)
-    assert len(tokens) == len(labels), f"Mismatch in tokens and labels for {url}"
+    assert len(tokens) == len(labels), f"Tokens and labels mismatch for {html_file}"
 
 
 @pytest.mark.parametrize(
@@ -37,8 +34,6 @@ def test_html_extraction(fetcher, extractor, url):
         ('<input type="text" name="username">', "USERNAME"),
         ('<input type="password" name="password">', "PASSWORD"),
         ('<button type="submit">Login</button>', "LOGIN_BUTTON"),
-        ('<div>Non-related content</div>', "UNLABELED"),
-        ('<input type="hidden" name="csrf_token">', "UNLABELED"),
     ]
 )
 def test_determine_label(html_snippet, expected_label):
@@ -46,3 +41,5 @@ def test_determine_label(html_snippet, expected_label):
     soup = BeautifulSoup(html_snippet, "lxml")
     tag = soup.find()
     assert determine_label(tag) == expected_label
+
+

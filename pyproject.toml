@@ -59,7 +59,10 @@ documentation = "https://byvictorrr.github.io/LoginFieldDetector/"
 
 [tool.pytest.ini_options]
 addopts="-v --cov"
-markers = []
+markers = [
+    "external: marks tests that require access to external websites",
+    "internal: marks tests that do not require external access to websites"
+]
 testpaths = ["tests/"]
 
 [tool.setuptools]

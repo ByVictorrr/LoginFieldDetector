@@ -25,6 +25,8 @@ from .html_fetcher import HTMLFetcher
 
 log = logging.getLogger(__name__)
 
+LABEL2ID = {label: i for i, label in enumerate(LABELS)}
+
 
 def compute_metrics(pred):
     labels = pred.label_ids
@@ -83,7 +85,7 @@ class LoginFieldDetector:
         if not labels:
             raise ValueError("Labels must be provided to initialize the model.")
         self.labels = labels
-        self.label2id = {label: i for i, label in enumerate(self.labels)}
+        self.label2id = LABEL2ID
         self.id2label = {i: label for label, i in self.label2id.items()}
         self.device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
         root_dir = os.path.dirname(os.path.dirname(__file__))

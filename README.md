@@ -23,8 +23,10 @@ pip install html-login-field-detector[gpu] --extra-index-url https://download.py
 ```
 ### Install System Dependencies
 Run the following command to install Playwright's system dependencies:
+
 ```bash
 playwright install-deps
+```
 
 
 ## Usage
