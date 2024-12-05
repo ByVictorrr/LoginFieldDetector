@@ -95,6 +95,7 @@ class LoginFieldDetector:
         if model_dir is None:
             log.info("Downloading model files from Hugging Face...")
             model_dir = download_model_files(root_dir)
+            log.info(f"{model_dir} includes: {os.listdir(model_dir)}")
         try:
             self.tokenizer = AutoTokenizer.from_pretrained(model_dir)
             self.model = AutoModelForSequenceClassification.from_pretrained(
@@ -105,9 +106,7 @@ class LoginFieldDetector:
             )
             log.info("Not need to train this model because it has been fetched.")
         except Exception as e:
-            log.warning(f"Warning: {model_dir} not found or invalid. Using 'distilbert-base-uncased' as default. "
-                        f"Error: {e}")
-
+            log.warning(f"Failed to load model from {model_dir}: {e}. Falling back to 'distilbert-base-uncased'.")
             self.tokenizer = DistilBertTokenizerFast.from_pretrained("distilbert-base-uncased")
             # Create a config with model_type
             config = DistilBertConfig(
