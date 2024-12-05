@@ -64,6 +64,11 @@ def download_model_files(root_dir):
     os.makedirs(model_dir, exist_ok=True)
     for filename in ["model.safetensors", "config.json", "tokenizer.json"]:
         hf_hub_download(repo_id=repo_id, filename=filename, cache_dir=model_dir, force_filename=filename)
+        file_path = os.path.join(model_dir, filename)
+        if not os.path.exists(file_path):
+            log.error(f"{filename} is missing!")
+        else:
+            log.info(f"{filename} exists at {file_path}.")
     return model_dir
 
 
