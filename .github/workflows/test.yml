@@ -26,7 +26,7 @@ jobs:
 
     - name: Run tests with coverage
       run: |
-        pytest -m "not external" --cov=login_field_detector --cov-report=xml --junitxml=results.xml
+        pytest -m "not external" --tb=short --cov=login_field_detector --cov-report=xml --junitxml=results.xml
 
     - name: Upload to Coveralls
       env:
