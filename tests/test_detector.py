@@ -71,6 +71,8 @@ class TestDetectorInternal:
         values = detector.predict(html_content=html_content)
         assert any(
             len(v) > 0 for k, v in values.items() if k in LOGIN_PAGE_ELEMENTS
+
+
         ), f"Failed to detect login fields in {html_file}"
 
     @pytest.mark.parametrize("html_file", [

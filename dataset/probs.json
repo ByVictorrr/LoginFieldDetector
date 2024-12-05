@@ -1,0 +1,21 @@
+{
+  "https://access.online.metlife.com/": "blank",
+  "https://personal.vanguard.com/us/Login" : "blank",
+  "https://www.farmers.com/login": "blank",
+  "https://www.keurig.com/login": "blank",
+  "https://www.kfc.com/login": "blank",
+  "https://www.newyorklife.com/login": "blank",
+  "https://us.accounts.ikea.com/login": "blank",
+  "https://www.runkeeper.com/login": "blank",
+  "https://www.usbank.com/login": "blank",
+  "https://www.washingtonpost.com/subscribe/signin/": "blank",
+
+  "https://account.deezer.com/en-us/login/":  "not loaded",
+  "https://accounts-tax.intuit.com/app/turbotaxonline": "spinner still spinning",
+  "https://accounts.intuit.com/app/sign-in": "spinner still spinning",
+  "https://app.pluralsight.com/id": "Please complete the security check to access the site",
+  "https://internet-banking.dbs.com.sg/":  "no login page",
+  "https://login.fidelity.com/ftgw/Fas/Fidelity/RtlCust/Login/Init": "no login page",
+
+
+}
