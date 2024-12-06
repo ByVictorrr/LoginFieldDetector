@@ -33,7 +33,7 @@ dependencies = [
     "playwright-stealth>=1.0.4",
 ]
 [tool.pip.settings]
-extra-index-url = ["https://download.pytorch.org/whl/cu118"]
+extra-index-url = ["https://download.pytorch.org/whl/rocm5.4.2"]
 
 [project.optional-dependencies]
 cpu = [
@@ -43,9 +43,9 @@ cpu = [
 ]
 
 gpu = [
-    "torch==2.5.1+cu118",
-    "torchvision==0.20.1+cu118",
-    "torchaudio==2.5.1+cu118",
+    "torch==2.5.1+rocm5.4.2",
+    "torchvision==0.20.1+rocm5.4.2",
+    "torchaudio==2.5.1+rocm5.4.2",
 ]
 docs = [
     "sphinx>=7.2",
