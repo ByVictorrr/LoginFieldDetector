@@ -32,6 +32,8 @@ dependencies = [
     "playwright==1.39.0",
     "playwright-stealth>=1.0.4",
 ]
+[tool.pip.settings]
+extra-index-url = ["https://download.pytorch.org/whl/cu118"]
 
 [project.optional-dependencies]
 cpu = [
