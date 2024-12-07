@@ -399,4 +399,4 @@ if __name__ == "__main__":
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     detector = LoginFieldDetector(model_dir=output_dir)
-    detector.train(force=True, epochs=50)
+    detector.train(force=True, epochs=20, screenshots=True)

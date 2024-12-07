@@ -17,7 +17,7 @@ jobs:
         run: |
           source ~/.virtualenvs/LoginFieldDetector/bin/activate
           pip install --upgrade pip
-          pip install .[gpu]
+          pip install --extra-index-url https://download.pytorch.org/whl/rocm6.0 torch torchvision torchaudio
           playwright install
 
       - name: Train the model

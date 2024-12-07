@@ -32,8 +32,6 @@ dependencies = [
     "playwright==1.39.0",
     "playwright-stealth>=1.0.4",
 ]
-[tool.pip.settings]
-extra-index-url = ["https://download.pytorch.org/whl/rocm6.0"]
 
 [project.optional-dependencies]
 cpu = [
@@ -60,7 +58,7 @@ repository = "https://github.com/ByVictorrr/LoginFieldDetector"
 documentation = "https://byvictorrr.github.io/LoginFieldDetector/"
 
 [tool.pytest.ini_options]
-addopts="-v --cov"
+addopts = "-v --cov=src --cov-report=term-missing --cov-report=html"
 markers = [
     "external: marks tests that require access to external websites",
     "internal: marks tests that do not require external access to websites"
