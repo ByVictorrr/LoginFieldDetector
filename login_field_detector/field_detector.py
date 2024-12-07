@@ -20,8 +20,8 @@ from transformers import (
 from sklearn.metrics import classification_report, accuracy_score, confusion_matrix, ConfusionMatrixDisplay
 from sklearn.utils.class_weight import compute_class_weight
 from huggingface_hub import hf_hub_download
-from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 from .html_fetcher import HTMLFetcher
+from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 
 log = logging.getLogger(__name__)
 

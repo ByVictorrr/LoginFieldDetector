@@ -19,7 +19,7 @@ class TestDetectorExternal:
     def detector(self):
         """Fixture to initialize the LoginFieldDetector."""
         detector = LoginFieldDetector()
-        # detector.train(force=True, screenshots=True)
+        detector.train(force=True, screenshots=True)
         return detector
 
     @pytest.mark.parametrize("url", [
