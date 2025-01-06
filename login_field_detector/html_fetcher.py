@@ -181,7 +181,7 @@ class HTMLFetcher:
         :return: HTML content as a string or None if failed.
         """
         results = self.fetch_all([url], force=force, screenshot=screenshot)
-        return results.get(url)
+        return results.get(url, None)
 
     def fetch_all(self, urls, force=False, screenshot=False):
         """
@@ -203,31 +203,45 @@ class HTMLFetcher:
         :param screenshot: Whether to take a screenshot of the pages.
         :return: Dictionary of {url: html} for successfully fetched URLs.
         """
-        # Clean up cache if forced
-        if force:
-            await self._cleanup_cache(urls)
+        # Prepare result dictionary
+        url_results = {}
 
-        # Use Playwright for fetching
+        # Handle cached URLs
+        for url in urls:
+            if not force and url in self.cache:
+                log.info(f"Returning cached content for {url}")
+                url_results[url] = self.cache[url]
+
+        # URLs to fetch: not cached or forced
+        urls_to_fetch = [url for url in urls if force or url not in self.cache and url not in self.failed_url_cache]
+
+        if not urls_to_fetch:
+            # Return early if there's nothing to fetch
+            return url_results
+
+        # Use Playwright for fetching new URLs
         async with async_playwright() as p:
             browser = await p.chromium.launch(**self.browser_launch_kwargs)
             semaphore = asyncio.Semaphore(self.max_concurrency)
 
-            # Prepare tasks for fetching
             tasks = [
                 self._fetch_url(browser, url, semaphore, screenshot)
-                for url in urls if force or url not in self.cache
+                for url in urls_to_fetch
             ]
             results = await asyncio.gather(*tasks, return_exceptions=True)
 
             await browser.close()
 
-        # Map results to URLs
-        url_results = {}
-        for url, result in zip(urls, results):
+        # Process fetch results
+        for url, result in zip(urls_to_fetch, results):
             if isinstance(result, Exception):
                 log.error(f"Error fetching {url}: {result}")
+                self.failed_url_cache.set(url, "Failed", expire=self.ttl)  # Cache failed URLs
             elif result:
+                log.info(f"Fetched and cached content for {url}")
+                self.cache.set(url, result, expire=self.ttl)
                 url_results[url] = result
+
         return url_results
 
     async def _cleanup_cache(self, urls):
@@ -254,7 +268,7 @@ class HTMLFetcher:
 
                 # Navigate and handle retries
                 if not await navigate_with_retries(page, url, timeout=DEFAULT_TIMEOUT):
-                    return url, None
+                    return None
 
                 # Wait for the page to be ready
                 await wait_for_page_ready(page, timeout=DEFAULT_TIMEOUT)
@@ -265,11 +279,11 @@ class HTMLFetcher:
                     await self._save_screenshot(page, url)
 
                 self.cache.set(url, html, expire=self.ttl)
-                return url, html
+                return html
 
             except Exception as e:
                 log.error(f"Error fetching {url}: {e}")
-                return url, None
+                return None
             finally:
                 await context.close()
 

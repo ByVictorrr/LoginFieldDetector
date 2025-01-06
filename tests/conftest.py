@@ -4,7 +4,7 @@ import pytest
 import shutil
 
 
-@pytest.fixture(scope="session", autouse=True)
+# @pytest.fixture(scope="session", autouse=True)
 def extract_html_files():
     """Extract HTML files from resources/tests_html.zip if not already extracted.
 

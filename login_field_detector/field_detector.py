@@ -1,6 +1,6 @@
 import json
+import os
 import logging
-import os.path
 import shutil
 import time
 from collections import Counter, defaultdict
@@ -26,6 +26,7 @@ from .html_feature_extractor import HTMLFeatureExtractor, LABELS
 log = logging.getLogger(__name__)
 
 LABEL2ID = {label: i for i, label in enumerate(LABELS)}
+os.environ["HSA_OVERRIDE_GFX_VERSION"] = "10.3.0"
 
 
 def compute_metrics(pred):
@@ -217,7 +218,7 @@ class LoginFieldDetector:
         log.info("Starting training...")
         training_args = TrainingArguments(
             output_dir=self.model_dir,
-            evaluation_strategy="steps",
+            eval_strategy="steps",
             eval_steps=500,
             logging_steps=100,
             save_strategy="steps",
@@ -228,6 +229,7 @@ class LoginFieldDetector:
             gradient_accumulation_steps=4,  # Accumulate gradient over 4 steps
             remove_unused_columns=False,
             fp16=torch.cuda.is_available(),
+            disable_tqdm=False,  # Ensure tqdm is enabled
         )
         trainer = WeightedTrainer(
             model=self.model,
@@ -238,7 +240,7 @@ class LoginFieldDetector:
             class_weights=class_weights,
             compute_metrics=compute_metrics,
         )
-        trainer.train(resume_from_checkpoint=False if force else True)
+        trainer.train()
         # Log the time taken to TensorBoard
         elapsed_time = time.time() - start_time
         self.writer.add_scalar("Training/Time_Seconds", elapsed_time)
@@ -375,9 +377,12 @@ class LoginFieldDetector:
         # Define all possible labels (use the full id2label mapping)
         all_labels = sorted(self.id2label.keys())  # Ensure all labels are included
         target_labels = [self.id2label[label] for label in all_labels]
-
-        self.visualize_class_distribution(true_labels)
-        self.plot_confusion_matrix(true_labels, predictions)
+        try:
+            self.visualize_class_distribution(true_labels)
+            self.plot_confusion_matrix(true_labels, predictions)
+        except AttributeError:
+            # happens over ssh: AttributeError: 'FigureCanvasInterAgg' object has no attribute 'tostring_rgb'
+            pass
         # Generate the classification report
         log.info(classification_report(
             true_labels,
@@ -395,8 +400,13 @@ if __name__ == "__main__":
         level=getattr(logging, log_level, logging.WARNING),
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     )
+    import sys
+
+    sys.stdout.flush()
     output_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), "model")
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
     detector = LoginFieldDetector(model_dir=output_dir)
-    detector.train(force=True, epochs=20, screenshots=True)
+    detector.train(force=True, epochs=30, screenshots=True)
+    # output = detector.predict(url="https://x.com/i/flow/login")
+    print("hi")

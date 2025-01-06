@@ -31,6 +31,7 @@ dependencies = [
     "fake-useragent>=1.5.1",
     "playwright==1.39.0",
     "playwright-stealth>=1.0.4",
+    "accelerate>=0.26.0",
 ]
 
 [project.optional-dependencies]
@@ -39,11 +40,10 @@ cpu = [
     "torchvision>=0.15.0",
     "torchaudio>=2.0.0",
 ]
-
 gpu = [
-    "torch==2.4.1+rocm6.0",
-    "torchvision==0.19.1+rocm6.0",
-    "torchaudio==2.4.1+rocm6.0",
+    "torch==.5.1+cu118",
+    "torchvision==0.20.1+cu118",
+    "torchaudio==2.5.1+cu118",
 ]
 docs = [
     "sphinx>=7.2",
