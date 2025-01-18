@@ -2,7 +2,7 @@ import os
 import logging
 import pytest
 from bs4 import BeautifulSoup
-from login_field_detector import determine_label, HTMLFeatureExtractor, LABEL2ID
+from login_field_detector import determine_label, HTMLFeatureExtractor, LABEL2ID, HTMLFetcher
 
 log = logging.getLogger(__file__)
 
@@ -12,6 +12,42 @@ def extractor():
     """Fixture for HTMLFeatureExtractor."""
     return HTMLFeatureExtractor(LABEL2ID)
 
+@pytest.fixture(scope="module")
+def downloader():
+    return HTMLFetcher()
+
+# Define URLs and expected label counts
+LOGIN_PAGE_ELEMENTS = ["USERNAME", "PASSWORD", "LOGIN_BUTTON", "SOCIAL_LOGIN_BUTTONS", "NEXT_BUTTON", "PHONE_NUMBER", "TWO_FACTOR_AUTH"]
+
+@pytest.mark.parametrize("url, expected_counts", [
+    ("https://x.com/i/flow/login", {"USERNAME": 1, "SOCIAL_LOGIN_BUTTONS": 2, "NEXT_BUTTON": 1}),
+    ("https://www.facebook.com/login", {"USERNAME": 1, "PASSWORD": 1, "LOGIN_BUTTON": 1}),
+    ("https://www.instagram.com/accounts/login/", {"USERNAME": 1, "PASSWORD": 1, "LOGIN_BUTTON": 1}),
+    ("https://www.linkedin.com/login", {"USERNAME": 1, "PASSWORD": 1, "LOGIN_BUTTON": 1, "SOCIAL_LOGIN_BUTTONS": 2}),
+])
+def test_valid_login_urls(downloader, extractor, url, expected_counts):
+    """
+    Test valid login pages for the presence and count of expected login elements.
+    """
+    # Fetch HTML content
+    html_content = downloader.fetch_html(url=url)
+
+    # Extract tokens, labels, and xpaths
+    tokens, labels, xpaths = extractor.get_features(html_text=html_content)
+
+    # Count occurrences of each label
+    label_counts = {label: labels.count(label) for label in LOGIN_PAGE_ELEMENTS}
+
+    # Assert that each expected label count matches
+    for label, expected_count in expected_counts.items():
+        assert label_counts.get(label, 0) == expected_count, (
+            f"Failed on {url}: Expected {expected_count} {label}, but found {label_counts.get(label, 0)}"
+        )
+
+    # Ensure at least one element for critical login fields
+    assert any(
+        label_counts.get(label, 0) > 0 for label in LOGIN_PAGE_ELEMENTS
+    ), f"Failed to find any login elements on {url}"
 
 @pytest.mark.parametrize("html_file", [
     "crunchyroll.html",
