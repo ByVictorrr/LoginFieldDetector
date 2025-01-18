@@ -1,4 +1,7 @@
 {
+  "version": "2.0.0",
+  "last_updated": "2025-01-05",
+  "description": "Optimized keywords for detecting form elements and navigation in web applications.",
   "oauth_providers": [
     "google",
     "apple",

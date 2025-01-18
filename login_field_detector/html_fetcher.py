@@ -128,6 +128,7 @@ async def navigate_with_retries(page, url, retries=3, backoff=2, timeout=60):
 
 
 class HTMLFetcher:
+    """Fetches HTML for loading data for input to the transformer."""
     def __init__(
             self,
             cache_dir=None,
@@ -172,8 +173,7 @@ class HTMLFetcher:
         }
 
     def fetch_html(self, url, force=False, screenshot=False):
-        """
-        Synchronously fetch a single URL.
+        """Synchronously fetch a single URL.
 
         :param url: URL to fetch.
         :param force: Force fetching even if URLs are cached or marked as failed.
@@ -184,8 +184,7 @@ class HTMLFetcher:
         return results.get(url, None)
 
     def fetch_all(self, urls, force=False, screenshot=False):
-        """
-        Synchronously fetch multiple URLs.
+        """Synchronously fetch multiple URLs.
 
         :param urls: List of URLs to fetch.
         :param force: Force fetching even if URLs are cached or marked as failed.
@@ -195,8 +194,7 @@ class HTMLFetcher:
         return asyncio.run(self._fetch_all(urls, force=force, screenshot=screenshot))
 
     async def _fetch_all(self, urls, force=False, screenshot=False):
-        """
-        Asynchronously fetch multiple URLs.
+        """Asynchronously fetch multiple URLs.
 
         :param urls: List of URLs to fetch.
         :param force: Force fetching even if URLs are cached or marked as failed.
@@ -245,8 +243,7 @@ class HTMLFetcher:
         return url_results
 
     async def _cleanup_cache(self, urls):
-        """
-        Clean up caches for given URLs.
+        """Clean up caches for given URLs.
 
         :param urls: List of URLs to clean up.
         """
