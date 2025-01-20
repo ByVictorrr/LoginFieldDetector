@@ -64,7 +64,7 @@
     "BANNER": "(banner|announcement|alert|header|promotion|notification|pop-up|headline)",
     "COOKIE_POLICY": "(cookie policy|cookies|tracking policy|data usage|we use cookies|accept cookies)",
     "IMPRINT": "(imprint|legal notice|about us|company details|contact info|disclaimer|company profile)",
-    "SOCIAL_LOGIN_BUTTONS": "(login with|sign in with|connect with|continue with|authenticate with)\\s+(facebook|google|twitter|github|linkedin)",
+    "SOCIAL_LOGIN_BUTTONS": "(login with|sign in with|connect with|continue with|authenticate with)",
     "LOGIN_BUTTON": "(log\\s*in|sign\\s*in|sign\\s*on|access account|proceed to login|continue to login|submit credentials|enter account|login now)",
     "CAPTCHA": "(captcha|i'm not a robot|security check|verify|prove you're human|challenge|reCAPTCHA)",
     "USERNAME": "(e-?mail|phone|user(?:name)?|login(?: name)?|account(?: name)?|(?:account\\s)?identifier|profile name)",
