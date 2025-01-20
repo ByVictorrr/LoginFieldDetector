@@ -55,7 +55,6 @@
     "FORGOT_PASSWORD": "(forgot (?:password|account)|reset password|can't access|retrieve|trouble signing in|recover your account)",
     "ADVERTISEMENTS": "(ad|advertisement|promo|sponsored|ads by|learn more|check out|special offer|deal)",
     "NAVIGATION_LINK": "\\b(home|back|previous|main\\s*menu|navigation|navigate|main\\s*page|show more|view details|dashboard|explore site)\\b",
-    "NEXT_BUTTON": "\\b(next|continue|proceed|forward|advance)\\b",
     "HELP_LINK": "(help|support|faq|contact us|need assistance|get help|troubleshoot|customer service)",
     "LANGUAGE_SWITCH": "(\\b(english|español|français|deutsch|italiano|русский|中文|日本語|한국어)\\b)",
     "SIGN_UP": "(sign up|register|create account|join now|get started|new here|enroll|begin)",
@@ -71,6 +70,7 @@
     "USERNAME": "(e-?mail|phone|user(?:name)?|login(?: name)?|account(?: name)?|(?:account\\s)?identifier|profile name)",
     "PASSWORD": "(pass|password|pwd|secret|key|pin|phrase|access code|security word)",
     "PHONE_NUMBER": "(phone|mobile|contact number|cell|telephone|call us)",
+    "NEXT_BUTTON": "\\b(next|continue|proceed|forward|advance)\\b",
     "TWO_FACTOR_AUTH": "(2fa|authenticator|verification code|token|one-time code|security key|two-step verification|otp)"
   },
 "spinner_patterns": [

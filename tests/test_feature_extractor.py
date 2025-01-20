@@ -1,8 +1,10 @@
 import os
 import logging
+from collections import Counter
+
 import pytest
 from bs4 import BeautifulSoup
-from login_field_detector import determine_label, HTMLFeatureExtractor, LABEL2ID
+from login_field_detector import determine_label, HTMLFeatureExtractor, LABEL2ID, HTMLFetcher
 
 log = logging.getLogger(__file__)
 
@@ -12,6 +14,38 @@ def extractor():
     """Fixture for HTMLFeatureExtractor."""
     return HTMLFeatureExtractor(LABEL2ID)
 
+@pytest.fixture(scope="module")
+def downloader():
+    return HTMLFetcher()
+
+
+
+
+@pytest.mark.parametrize("url, expected_counts", [
+    ("https://x.com/i/flow/login", {"USERNAME": 1, "SOCIAL_LOGIN_BUTTONS": 2, "NEXT_BUTTON": 1}),
+    ("https://www.facebook.com/login", {"USERNAME": 1, "PASSWORD": 1, "LOGIN_BUTTON": 1}),
+    ("https://www.instagram.com/accounts/login/", {"USERNAME": 1, "PASSWORD": 1, "LOGIN_BUTTON": 1}),
+    ("https://www.linkedin.com/login", {"USERNAME": 1, "PASSWORD": 1, "LOGIN_BUTTON": 1, "SOCIAL_LOGIN_BUTTONS": 2}),
+])
+def test_valid_login_urls(downloader, extractor, url, expected_counts):
+    """
+    Test valid login pages for the presence and count of expected login elements.
+    """
+    # Fetch HTML content
+    html_content = downloader.fetch_html(url=url)
+
+    # Extract tokens, labels, and xpaths
+    tokens, labels, xpaths = extractor.get_features(html_text=html_content)
+
+    label_cnter = Counter(labels)
+    # Count occurrences of each label
+    label_counts = {label_id: label_cnter.get(value, 0) for label_id, value  in LABEL2ID.items()}
+
+    # Assert that each expected label count matches
+    for label, expected_count in expected_counts.items():
+        assert label_counts.get(label, 0) == expected_count, (
+            f"Failed on {url}: Expected {expected_count} {label}, but found {label_counts.get(label, 0)}"
+        )
 
 @pytest.mark.parametrize("html_file", [
     "crunchyroll.html",
