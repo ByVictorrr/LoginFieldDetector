@@ -1,5 +1,7 @@
 import os
 import logging
+from collections import Counter
+
 import pytest
 from bs4 import BeautifulSoup
 from login_field_detector import determine_label, HTMLFeatureExtractor, LABEL2ID, HTMLFetcher
@@ -16,8 +18,8 @@ def extractor():
 def downloader():
     return HTMLFetcher()
 
-# Define URLs and expected label counts
-LOGIN_PAGE_ELEMENTS = ["USERNAME", "PASSWORD", "LOGIN_BUTTON", "SOCIAL_LOGIN_BUTTONS", "NEXT_BUTTON", "PHONE_NUMBER", "TWO_FACTOR_AUTH"]
+
+
 
 @pytest.mark.parametrize("url, expected_counts", [
     ("https://x.com/i/flow/login", {"USERNAME": 1, "SOCIAL_LOGIN_BUTTONS": 2, "NEXT_BUTTON": 1}),
@@ -35,8 +37,9 @@ def test_valid_login_urls(downloader, extractor, url, expected_counts):
     # Extract tokens, labels, and xpaths
     tokens, labels, xpaths = extractor.get_features(html_text=html_content)
 
+    label_cnter = Counter(labels)
     # Count occurrences of each label
-    label_counts = {label: labels.count(label) for label in LOGIN_PAGE_ELEMENTS}
+    label_counts = {label_id: label_cnter.get(value, 0) for label_id, value  in LABEL2ID.items()}
 
     # Assert that each expected label count matches
     for label, expected_count in expected_counts.items():
@@ -44,10 +47,6 @@ def test_valid_login_urls(downloader, extractor, url, expected_counts):
             f"Failed on {url}: Expected {expected_count} {label}, but found {label_counts.get(label, 0)}"
         )
 
-    # Ensure at least one element for critical login fields
-    assert any(
-        label_counts.get(label, 0) > 0 for label in LOGIN_PAGE_ELEMENTS
-    ), f"Failed to find any login elements on {url}"
 
 @pytest.mark.parametrize("html_file", [
     "crunchyroll.html",

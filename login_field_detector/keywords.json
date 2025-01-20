@@ -36,7 +36,7 @@
     "TWO_FACTOR_AUTH"
   ],
   "label_regexes": {
-    "NEXT_BUTTON": "\\b(next(\\s*step|\\s*button)?|continue(\\s*to)?|proceed|forward|advance|go\\s*next)\\b",
+    "NEXT_BUTTON": "\\b(next\\s*(step|button|page)?|continue\\s*(to|>)?|proceed\\s*(to|>)?|advance\\s*(>)?)\\b",
     "SOCIAL_LOGIN_BUTTONS": "(?i)(login|sign in|connect|continue|authenticate)\\s*(with|via)?",
     "LOGIN_BUTTON": "(?i)(log\\s*in|sign\\s*in|sign\\s*on|access\\s*(your|the)?\\s*account|proceed to login|continue\\s*to\\s*login|submit|enter\\s*(your)?\\s*credentials|login now)",
     "USERNAME": "(?i)(e-?mail|email\\s*address|phone|user(?:name)?|login(?:\\s*name)?|account(?:\\s*name)?|identifier|profile(?:\\s*name)?)\\b",
