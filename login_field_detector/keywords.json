@@ -67,8 +67,8 @@
     "SOCIAL_LOGIN_BUTTONS": "(login with|sign in with|connect with|continue with|authenticate with)",
     "LOGIN_BUTTON": "(log\\s*in|sign\\s*in|sign\\s*on|access account|proceed to login|continue to login|submit credentials|enter account|login now)",
     "CAPTCHA": "(captcha|i'm not a robot|security check|verify|prove you're human|challenge|reCAPTCHA)",
-    "USERNAME": "(e-?mail|phone|user(?:name)?|login(?: name)?|account(?: name)?|(?:account\\s)?identifier|profile name)",
     "PASSWORD": "(pass|password|pwd|secret|key|pin|phrase|access code|security word)",
+    "USERNAME": "(e-?mail|phone|user(?:name)?|login(?: name)?|account(?: name)?|(?:account\\s)?identifier|profile name)",
     "PHONE_NUMBER": "(phone|mobile|contact number|cell|telephone|call us)",
     "NEXT_BUTTON": "\\b(next|continue|proceed|forward|advance)\\b",
     "TWO_FACTOR_AUTH": "(2fa|authenticator|verification code|token|one-time code|security key|two-step verification|otp)"

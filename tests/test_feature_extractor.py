@@ -40,7 +40,7 @@ def test_valid_login_urls(downloader, extractor, url, expected_counts):
     label_cnter = Counter(labels)
     # Count occurrences of each label
     label_counts = {label_id: label_cnter.get(value, 0) for label_id, value  in LABEL2ID.items()}
-
+    values = list(zip(tokens,  [s for label in labels for s, i in LABEL2ID.items() if label == i ]))
     # Assert that each expected label count matches
     for label, expected_count in expected_counts.items():
         assert label_counts.get(label, 0) == expected_count, (
